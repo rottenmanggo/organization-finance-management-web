@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistem Bendahara Organisasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-slate-50 text-slate-800 font-sans">
+    <div class="flex min-h-screen">
+      <aside class="w-72 bg-slate-900 text-white p-6 hidden lg:block">
+        <h1 class="text-2xl font-bold text-blue-400 mb-1">BENDAHARA</h1>
+        <p class="text-[10px] text-slate-500 tracking-[0.2em] mb-10">
+          CORE MANAGEMENT
+        </p>
+
+        <nav class="space-y-2">
+          <button
+            onclick="showTab('dashboard')"
+            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition active-nav"
+            id="nav-dashboard"
+          >
+            <i class="fas fa-th-large"></i> Dashboard
+          </button>
+          <button
+            onclick="showTab('transaksi')"
+            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition"
+            id="nav-transaksi"
+          >
+            <i class="fas fa-exchange-alt"></i> Transaksi
+          </button>
+          <button
+            onclick="showTab('anggaran')"
+            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition"
+            id="nav-anggaran"
+          >
+            <i class="fas fa-tasks"></i> Anggaran Proker
+          </button>
+          <button
+            onclick="showTab('kas')"
+            class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition"
+            id="nav-kas"
+          >
+            <i class="fas fa-users"></i> Kas Anggota
+          </button>
+        </nav>
+      </aside>
+
+      <main class="flex-1 p-8 h-screen overflow-y-auto">
+        <section id="tab-dashboard" class="tab-content space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+              class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+            >
+              <p class="text-slate-400 text-xs font-bold uppercase">
+                Saldo Saat Ini
+              </p>
+              <h2 id="dash-saldo" class="text-3xl font-bold mt-2">Rp 0</h2>
+            </div>
+            <div
+              class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+            >
+              <p class="text-slate-400 text-xs font-bold uppercase">
+                Total Pemasukan
+              </p>
+              <h2
+                id="dash-masuk"
+                class="text-3xl font-bold mt-2 text-green-600"
+              >
+                Rp 0
+              </h2>
+            </div>
+            <div
+              class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"
+            >
+              <p class="text-slate-400 text-xs font-bold uppercase">
+                Total Pengeluaran
+              </p>
+              <h2 id="dash-keluar" class="text-3xl font-bold mt-2 text-red-500">
+                Rp 0
+              </h2>
+            </div>
+          </div>
+          <div
+            class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200"
+          >
+            <h3 class="font-bold mb-6">Analisis Kas</h3>
+            <canvas id="mainChart" height="100"></canvas>
+          </div>
+        </section>
+
+        <section id="tab-transaksi" class="tab-content hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold">Riwayat Transaksi</h2>
+            <button
+              onclick="openModal('modal-trx')"
+              class="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800"
+            >
+              Tambah Transaksi
+            </button>
+          </div>
+          <div
+            class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200"
+          >
+            <table class="w-full text-left">
+              <thead
+                class="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold border-b"
+              >
+                <tr>
+                  <th class="p-4">ID</th>
+                  <th class="p-4">Deskripsi</th>
+                  <th class="p-4">Kategori</th>
+                  <th class="p-4 text-right">Jumlah</th>
+                  <th class="p-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody
+                id="list-transaksi"
+                class="divide-y divide-slate-100"
+              ></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="tab-anggaran" class="tab-content hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-bold">Limit Anggaran Proker</h2>
+            <button
+              onclick="openModal('modal-anggaran')"
+              class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700"
+            >
+              Set Anggaran
+            </button>
+          </div>
+          <div
+            id="list-anggaran"
+            class="grid grid-cols-1 md:grid-cols-2 gap-6"
+          ></div>
+        </section>
+
+        <section id="tab-kas" class="tab-content hidden space-y-6">
+          <h2 class="text-2xl font-bold">Data Kas Anggota</h2>
+          <div
+            class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200"
+          >
+            <table class="w-full text-left">
+              <thead
+                class="bg-slate-50 text-slate-400 text-[10px] uppercase font-bold border-b"
+              >
+                <tr>
+                  <th class="p-4">Nama Anggota</th>
+                  <th class="p-4 text-center">Januari</th>
+                  <th class="p-4 text-center">Februari</th>
+                  <th class="p-4 text-center">Maret</th>
+                  <th class="p-4 text-right">Total Bayar</th>
+                </tr>
+              </thead>
+              <tbody id="list-kas" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div
+      id="modal-trx"
+      class="fixed inset-0 bg-slate-900/50 hidden flex items-center justify-center p-4 z-50"
+    >
+      <div class="bg-white w-full max-w-md rounded-2xl p-8">
+        <h3 class="font-bold text-xl mb-6">Catat Transaksi</h3>
+        <div class="space-y-4">
+          <select
+            id="trx-type"
+            class="w-full p-3 bg-slate-50 rounded-xl outline-none"
+          >
+            <option value="masuk">Pemasukan</option>
+            <option value="keluar">Pengeluaran</option>
+          </select>
+          <input
+            type="text"
+            id="trx-desc"
+            placeholder="Deskripsi (Misal: Iuran atau Proker A)"
+            class="w-full p-3 bg-slate-50 rounded-xl outline-none border-none"
+          />
+          <input
+            type="number"
+            id="trx-amount"
+            placeholder="Nominal Rp"
+            class="w-full p-3 bg-slate-50 rounded-xl outline-none border-none"
+          />
+          <div class="flex gap-2">
+            <button
+              onclick="closeModal('modal-trx')"
+              class="flex-1 p-3 text-slate-400 font-bold"
+            >
+              Batal
+            </button>
+            <button
+              onclick="addTrx()"
+              class="flex-1 p-3 bg-slate-900 text-white rounded-xl font-bold"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="modal-anggaran"
+      class="fixed inset-0 bg-slate-900/50 hidden flex items-center justify-center p-4 z-50"
+    >
+      <div class="bg-white w-full max-w-md rounded-2xl p-8">
+        <h3 class="font-bold text-xl mb-6">Tambah Proker</h3>
+        <div class="space-y-4">
+          <input
+            type="text"
+            id="prog-name"
+            placeholder="Nama Proker"
+            class="w-full p-3 bg-slate-50 rounded-xl outline-none"
+          />
+          <input
+            type="number"
+            id="prog-limit"
+            placeholder="Limit Anggaran Rp"
+            class="w-full p-3 bg-slate-50 rounded-xl outline-none"
+          />
+          <div class="flex gap-2">
+            <button
+              onclick="closeModal('modal-anggaran')"
+              class="flex-1 p-3 text-slate-400 font-bold"
+            >
+              Batal
+            </button>
+            <button
+              onclick="addBudget()"
+              class="flex-1 p-3 bg-blue-600 text-white rounded-xl font-bold"
+            >
+              Set Limit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Database
+      let data = JSON.parse(localStorage.getItem("bendahara_v3")) || {
+        transaksi: [],
+        anggaran: [],
+        kasAnggota: [
+          { id: 1, nama: "Baginda", bayar: [true, false, false] },
+          { id: 2, nama: "Fulan", bayar: [true, true, false] },
+        ],
+      };
+
+      function showTab(id) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((el) => el.classList.add("hidden"));
+        document.getElementById("tab-" + id).classList.remove("hidden");
+        render();
+      }
+
+      function openModal(id) {
+        document.getElementById(id).classList.remove("hidden");
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.add("hidden");
+      }
+
+      function addTrx() {
+        const desc = document.getElementById("trx-desc").value;
+        const amount = parseInt(document.getElementById("trx-amount").value);
+        const type = document.getElementById("trx-type").value;
+        if (!desc || !amount) return;
+
+        data.transaksi.push({ id: Date.now(), desc, amount, type });
+        save();
+        closeModal("modal-trx");
+      }
+
+      function addBudget() {
+        const name = document.getElementById("prog-name").value;
+        const limit = parseInt(document.getElementById("prog-limit").value);
+        if (!name || !limit) return;
+
+        data.anggaran.push({ name, limit });
+        save();
+        closeModal("modal-anggaran");
+      }
+
+      function toggleKas(userId, monthIdx) {
+        data.kasAnggota.find((u) => u.id === userId).bayar[monthIdx] =
+          !data.kasAnggota.find((u) => u.id === userId).bayar[monthIdx];
+        save();
+      }
+
+      function save() {
+        localStorage.setItem("bendahara_v3", JSON.stringify(data));
+        render();
+      }
+
+      let chart;
+      function render() {
+        // Summary
+        let masuk = data.transaksi
+          .filter((t) => t.type === "masuk")
+          .reduce((s, t) => s + t.amount, 0);
+        let keluar = data.transaksi
+          .filter((t) => t.type === "keluar")
+          .reduce((s, t) => s + t.amount, 0);
+        document.getElementById("dash-saldo").innerText =
+          "Rp " + (masuk - keluar).toLocaleString();
+        document.getElementById("dash-masuk").innerText =
+          "Rp " + masuk.toLocaleString();
+        document.getElementById("dash-keluar").innerText =
+          "Rp " + keluar.toLocaleString();
+
+        // Render Transaksi
+        const trxList = document.getElementById("list-transaksi");
+        trxList.innerHTML = "";
+        data.transaksi
+          .slice()
+          .reverse()
+          .forEach((t) => {
+            trxList.innerHTML += `
+                    <tr>
+                        <td class="p-4 font-mono text-xs text-slate-400">${t.id}</td>
+                        <td class="p-4 font-bold text-sm">${t.desc}</td>
+                        <td class="p-4"><span class="px-2 py-1 text-[10px] font-bold uppercase rounded ${t.type === "masuk" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}">${t.type}</span></td>
+                        <td class="p-4 text-right font-bold">Rp ${t.amount.toLocaleString()}</td>
+                        <td class="p-4 text-center"><button onclick="data.transaksi = data.transaksi.filter(x => x.id !== ${t.id}); save();" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                `;
+          });
+
+        // Render Anggaran
+        const angList = document.getElementById("list-anggaran");
+        angList.innerHTML = "";
+        data.anggaran.forEach((a) => {
+          const spent = data.transaksi
+            .filter(
+              (t) =>
+                t.type === "keluar" &&
+                t.desc.toLowerCase().includes(a.name.toLowerCase()),
+            )
+            .reduce((s, t) => s + t.amount, 0);
+          const perc = Math.min((spent / a.limit) * 100, 100);
+          angList.innerHTML += `
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200">
+                        <div class="flex justify-between mb-4"><h4 class="font-bold">${a.name}</h4><span class="text-xs font-bold ${perc >= 80 ? "text-red-500" : "text-slate-400"}">${perc.toFixed(0)}%</span></div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full mb-2"><div class="h-2 rounded-full ${perc >= 80 ? "bg-red-500" : "bg-blue-500"}" style="width: ${perc}%"></div></div>
+                        <p class="text-[10px] text-slate-400 uppercase">Sisa: Rp ${(a.limit - spent).toLocaleString()}</p>
+                    </div>
+                `;
+        });
+
+        // Render Kas Anggota
+        const kasList = document.getElementById("list-kas");
+        kasList.innerHTML = "";
+        data.kasAnggota.forEach((u) => {
+          const total = u.bayar.filter((b) => b).length * 20000; // Misal iuran 20rb
+          kasList.innerHTML += `
+                    <tr>
+                        <td class="p-4 font-bold text-sm">${u.nama}</td>
+                        ${u.bayar
+                          .map(
+                            (b, i) => `
+                            <td class="p-4 text-center">
+                                <button onclick="toggleKas(${u.id}, ${i})" class="w-6 h-6 rounded border-2 transition ${b ? "bg-green-500 border-green-500 text-white" : "border-slate-200"}">
+                                    ${b ? '<i class="fas fa-check text-[10px]"></i>' : ""}
+                                </button>
+                            </td>
+                        `,
+                          )
+                          .join("")}
+                        <td class="p-4 text-right font-bold text-blue-600">Rp ${total.toLocaleString()}</td>
+                    </tr>
+                `;
+        });
+
+        // Chart
+        const ctx = document.getElementById("mainChart").getContext("2d");
+        if (chart) chart.destroy();
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: ["Jan", "Feb", "Mar"],
+            datasets: [
+              {
+                label: "Pemasukan",
+                data: [masuk, masuk * 0.8, masuk * 1.2],
+                borderColor: "#22c55e",
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { display: false } },
+          },
+        });
+      }
+
+      render();
+    </script>
+  </body>
+</html>
