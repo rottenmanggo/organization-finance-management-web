@@ -2,7 +2,6 @@
 session_start();
 require_once "../config/database.php";
 
-/* ================= LOGIN ================= */
 if (isset($_POST['login'])) {
 
     $username = htmlspecialchars($_POST['username']);
@@ -34,68 +33,53 @@ if (isset($_POST['login'])) {
         $error = "Username tidak ditemukan!";
     }
 }
-
-/* ================= REGISTER ================= */
-if (isset($_POST['register'])) {
-
-    $username = htmlspecialchars($_POST['username']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-    $role = "VIEWER";
-
-    $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
-    $check->bind_param("s", $username);
-    $check->execute();
-    $check->store_result();
-
-    if ($check->num_rows > 0) {
-        $error = "Username sudah digunakan!";
-    } else {
-
-        $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
-        $stmt->bind_param("sss", $username, $password, $role);
-
-        if ($stmt->execute()) {
-            $success = "Registrasi berhasil! Silakan login.";
-        } else {
-            $error = "Terjadi kesalahan!";
-        }
-    }
-}
 ?>
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Login SIMAKAS</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
 
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Poppins", sans-serif;
+        }
+
         body {
-            background: #1c1c1c;
+            background: #1a1a1a;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
         }
 
-        .container-box {
+        .container {
             position: relative;
-            width: 800px;
-            height: 480px;
+            width: 1000px;
+            height: 550px;
             background: #fff;
-            border-radius: 20px;
+            border-radius: 30px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         }
+
+        /* ================= FORM ================= */
 
         .form-container {
             position: absolute;
             top: 0;
-            height: 100%;
             width: 50%;
-            padding: 50px;
-            transition: all .6s ease-in-out;
+            height: 100%;
+            padding: 90px 40px;
+            transition: all 0.6s ease-in-out;
+            backface-visibility: hidden;
         }
 
         .sign-in {
@@ -106,8 +90,95 @@ if (isset($_POST['register'])) {
         .sign-up {
             left: 0;
             opacity: 0;
-            z-index: 1;
+            visibility: hidden;
+            pointer-events: none;
         }
+
+        /* ACTIVE STATE */
+
+        .container.active .sign-in {
+            transform: translateX(100%);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .container.active .sign-up {
+            transform: translateX(100%);
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            z-index: 5;
+        }
+
+        /* ================= TYPO ================= */
+
+        h1 {
+            font-weight: 700;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 14px;
+            margin-bottom: 15px;
+            color: #555;
+            text-align: center;
+        }
+
+        /* ================= SOCIAL ================= */
+
+        .social {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .social div {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* ================= INPUT ================= */
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            background: #f1f1f1;
+            margin: 10px 0;
+        }
+
+        /* ================= BUTTON ================= */
+
+        button {
+            margin-top: 15px;
+            padding: 14px 50px;
+            border: none;
+            border-radius: 30px;
+            background: #1eb0ff;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto 0 auto;
+        }
+
+        button.ghost {
+            background: transparent;
+            border: 2px solid #fff;
+        }
+
+        /* ================= OVERLAY ================= */
 
         .overlay-container {
             position: absolute;
@@ -116,18 +187,18 @@ if (isset($_POST['register'])) {
             width: 50%;
             height: 100%;
             overflow: hidden;
-            transition: transform .6s ease-in-out;
+            transition: transform 0.6s ease-in-out;
             z-index: 100;
         }
 
         .overlay {
-            background: #0d6efd;
-            color: white;
+            background: #1eb0ff;
+            color: #fff;
             position: relative;
             left: -100%;
             width: 200%;
             height: 100%;
-            transition: transform .6s ease-in-out;
+            transition: transform 0.6s ease-in-out;
         }
 
         .overlay-panel {
@@ -139,98 +210,82 @@ if (isset($_POST['register'])) {
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 40px;
+            padding: 0 40px;
         }
 
         .overlay-right {
             right: 0;
         }
 
-        .container-box.active .sign-in {
-            transform: translateX(100%);
-        }
+        /* MOVE OVERLAY */
 
-        .container-box.active .sign-up {
-            transform: translateX(100%);
-            opacity: 1;
-            z-index: 5;
-        }
-
-        .container-box.active .overlay-container {
+        .container.active .overlay-container {
             transform: translateX(-100%);
         }
 
-        .container-box.active .overlay {
+        .container.active .overlay {
             transform: translateX(50%);
         }
     </style>
 </head>
 
 <body>
-
-    <div class="container-box" id="container">
-
-        <!-- REGISTER -->
+    <div class="container" id="container">
+        <!-- SIGN UP -->
         <div class="form-container sign-up">
-            <h3 class="mb-4 text-center">Register SIMAKAS</h3>
+            <h1 style="text-align: center">Create Account</h1>
+            <p>Register with E-mail</p>
 
-            <?php if (isset($error)): ?>
-                <div class="alert alert-danger"><?= $error ?></div>
-            <?php endif; ?>
+            <input type="text" placeholder="Name" />
+            <input type="email" placeholder="Enter E-mail" />
+            <input type="password" placeholder="Enter Password" />
 
-            <?php if (isset($success)): ?>
-                <div class="alert alert-success"><?= $success ?></div>
-            <?php endif; ?>
-
-            <form method="POST">
-                <input type="text" name="username" class="form-control mb-3" placeholder="Username" required>
-                <input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
-                <button name="register" class="btn btn-primary w-100">Register</button>
-            </form>
+            <button>SIGN UP</button>
         </div>
 
-        <!-- LOGIN -->
+        <!-- SIGN IN -->
         <div class="form-container sign-in">
-            <h3 class="mb-4 text-center">Login SIMAKAS</h3>
+            <h1 style="text-align: center">Sign In</h1>
+            <p style="text-align: center">Sign in with Email & Password</p>
 
-            <?php if (isset($error) && !isset($_POST['register'])): ?>
-                <div class="alert alert-danger"><?= $error ?></div>
+            <?php if (isset($error)): ?>
+                <p style="color:red; text-align:center;">
+                    <?= $error ?>
+                </p>
             <?php endif; ?>
 
             <form method="POST">
-                <input type="text" name="username" class="form-control mb-3" placeholder="Username" required>
-                <input type="password" name="password" class="form-control mb-3" placeholder="Password" required>
-                <button name="login" class="btn btn-primary w-100">Login</button>
+                <input type="text" name="username" placeholder="Username" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <button type="submit" name="login">SIGN IN</button>
             </form>
         </div>
 
         <!-- OVERLAY -->
         <div class="overlay-container">
             <div class="overlay">
-
                 <div class="overlay-panel">
-                    <h2>Welcome Back!</h2>
-                    <p>Sudah punya akun?</p>
-                    <button class="btn btn-light" id="signIn">Login</button>
+                    <h1>Selamat Datang<br />SIMAKAS</h1>
+                    <p style="color: #fff">Sign in With Email & Password</p>
+                    <button class="ghost" id="signIn">SIGN IN</button>
                 </div>
 
                 <div class="overlay-panel overlay-right">
-                    <h2>Halo!</h2>
-                    <p>Belum punya akun?</p>
-                    <button class="btn btn-light" id="signUp">Register</button>
+                    <h1>Halo</h1>
+                    <p style="color: #fff">Sign up now and enjoy</p>
+                    <button class="ghost" id="signUp">SIGN UP</button>
                 </div>
-
             </div>
         </div>
-
     </div>
 
     <script>
-        const container = document.getElementById('container');
-        document.getElementById('signUp').onclick = () => container.classList.add("active");
-        document.getElementById('signIn').onclick = () => container.classList.remove("active");
+        const container = document.getElementById("container");
+        document.getElementById("signUp").onclick = () =>
+            container.classList.add("active");
+        document.getElementById("signIn").onclick = () =>
+            container.classList.remove("active");
     </script>
-
 </body>
 
 </html>
