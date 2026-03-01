@@ -19,6 +19,7 @@ if (isset($_POST['tambah'])) {
     $stmt = $conn->prepare("INSERT INTO members (name, division, angkatan, phone) VALUES (?, ?, ?, ?)");
     $stmt->bind_param("ssss", $name, $division, $angkatan, $phone);
     $stmt->execute();
+    //hehe
 }
 
 // ================= UPDATE MEMBER =================
@@ -153,7 +154,7 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
                         <tr>
                             <th>No</th>
                             <th>Nama</th>
-                            <th>Divisi</th>
+                            <th>Divisiong</th>
                             <th>Angkatan</th>
                             <th>HP</th>
                             <th>Status</th>
