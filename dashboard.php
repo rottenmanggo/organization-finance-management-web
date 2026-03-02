@@ -2,6 +2,10 @@
 session_start();
 require_once "config/database.php";
 
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -218,7 +222,10 @@ $recentQuery = $conn->query("
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
@@ -232,18 +239,18 @@ $recentQuery = $conn->query("
         <!-- SUMMARY CARDS -->
         <div class="cards">
             <div class="card">
-                <h3>Total Kas</h3>
-                <h2>Rp <?= number_format($saldo, 0, ',', '.') ?></h2>
+                <h3>Saldo</h3>
+                <h2 style="color:#007bff">Rp <?= number_format($saldo, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">
                 <h3>Total Income</h3>
-                <h2>Rp <?= number_format($totalIncome, 0, ',', '.') ?></h2>
+                <h2 style="color:#28a745">Rp <?= number_format($totalIncome, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">
                 <h3>Total Expense</h3>
-                <h2>Rp <?= number_format($totalExpense, 0, ',', '.') ?></h2>
+                <h2 style="color:#dc3545">Rp <?= number_format($totalExpense, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">

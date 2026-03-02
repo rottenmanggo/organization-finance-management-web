@@ -2,6 +2,10 @@
 session_start();
 require_once "config/database.php";
 
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -272,7 +276,10 @@ $saldo = $totalIncome - $totalExpense;
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
@@ -305,7 +312,7 @@ $saldo = $totalIncome - $totalExpense;
             <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
                 <select name="month" class="form-input">
                     <option value="all" <?= ($selectedMonth == 'all') ? 'selected' : '' ?>>
-                        Semua (Total Seluruh)
+                        Semua
                     </option>
 
                     <?php for ($m = 1; $m <= 12; $m++): ?>

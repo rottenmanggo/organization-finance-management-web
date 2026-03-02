@@ -2,6 +2,10 @@
 session_start();
 require_once "config/database.php";
 
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -229,7 +233,10 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
