@@ -26,6 +26,50 @@ $saldo = $totalIncome - $totalExpense;
 $memberQuery = $conn->query("SELECT COUNT(*) as total_member FROM members WHERE status='aktif'");
 $totalMembers = $memberQuery->fetch_assoc()['total_member'] ?? 0;
 
+/* ================= REKAP KAS BULAN INI ================= */
+
+$currentMonth = date('n');
+$currentYear = date('Y');
+$kasPerMember = 10000;
+
+/* Total member aktif */
+$totalMemberAktif = $conn->query("
+    SELECT COUNT(*) as total 
+    FROM members 
+    WHERE status='aktif'
+")->fetch_assoc()['total'] ?? 0;
+
+/* Total kas lunas bulan ini */
+$kasMasuk = $conn->query("
+    SELECT SUM(amount) as total 
+    FROM kas 
+    WHERE month=$currentMonth 
+    AND year=$currentYear 
+    AND status='lunas'
+")->fetch_assoc()['total'] ?? 0;
+
+/* Hitung member sudah bayar */
+$memberLunas = $conn->query("
+    SELECT COUNT(*) as total 
+    FROM kas 
+    WHERE month=$currentMonth 
+    AND year=$currentYear 
+    AND status='lunas'
+")->fetch_assoc()['total'] ?? 0;
+
+$memberBelum = $totalMemberAktif - $memberLunas;
+
+$targetKas = $totalMemberAktif * $kasPerMember;
+
+$progress = $targetKas > 0 ? ($kasMasuk / $targetKas) * 100 : 0;
+
+/* Warna dinamis */
+$progressColor = "#dc3545"; // merah
+if ($progress >= 50)
+    $progressColor = "#ffc107"; // kuning
+if ($progress >= 80)
+    $progressColor = "#28a745"; // hijau
+
 /* ================= DATA GRAFIK PER BULAN ================= */
 
 $year = date('Y');
@@ -199,11 +243,6 @@ $recentQuery = $conn->query("
             transition: .3s;
         }
 
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, .08);
-        }
-
         .card h3 {
             font-size: 14px;
             color: #888
@@ -211,6 +250,74 @@ $recentQuery = $conn->query("
 
         .card h2 {
             margin-top: 10px
+        }
+
+        /* PROGRESS BAR */
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #28a745;
+            transition: width 0.5s ease;
+        }
+
+        .kas-card {
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+
+        .kas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .kas-header h3 {
+            font-weight: 600;
+        }
+
+        .kas-progress {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .kas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .kas-grid small {
+            color: #888;
+            font-size: 13px;
+        }
+
+        .kas-grid h4 {
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.6s ease;
+            border-radius: 10px;
         }
 
         /* BUTTON */
@@ -339,6 +446,37 @@ $recentQuery = $conn->query("
             <div class="card">
                 <h3>Total Members</h3>
                 <h2><?= $totalMembers ?></h2>
+            </div>
+        </div>
+
+        <!-- CARD KAS BULAN INI -->
+        <div class="card kas-card">
+            <div class="kas-header">
+                <h3>Kas Bulan <?= date("F Y") ?></h3>
+                <span class="kas-progress"><?= round($progress) ?>%</span>
+            </div>
+
+            <div class="kas-grid">
+                <div>
+                    <small>Target</small>
+                    <h4>Rp <?= number_format($targetKas, 0, ',', '.') ?></h4>
+                </div>
+
+                <div>
+                    <small>Realisasi</small>
+                    <h4>Rp <?= number_format($kasMasuk, 0, ',', '.') ?></h4>
+                </div>
+
+                <div>
+                    <small>Belum Bayar</small>
+                    <h4 style="color:#dc3545"><?= $memberBelum ?> Member</h4>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-fill"
+                    style="width: <?= min($progress, 100) ?>%; background: <?= $progressColor ?>;">
+                </div>
             </div>
         </div>
 

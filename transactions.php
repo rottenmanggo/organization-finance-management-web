@@ -308,6 +308,39 @@ $saldo = $totalIncome - $totalExpense;
             border-radius: 8px;
             border: 1px solid #ccc;
         }
+
+        /* Export button hover */
+        .export-btn {
+            transition: 0.2s ease;
+            margin-bottom: 10px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(216, 216, 216, 0.3);
+        }
+
+        /* Modal style */
+        .export-modal {
+            text-align: center;
+            padding: 30px;
+            width: 400px;
+        }
+
+        .export-modal h3 {
+            margin-bottom: 10px;
+        }
+
+        .export-modal p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
     </style>
 </head>
 
@@ -395,6 +428,10 @@ $saldo = $totalIncome - $totalExpense;
             </form>
         </div>
 
+        <button class="btn btn-success export-btn" onclick="confirmExport()">
+            Export CSV
+        </button>
+
         <!-- TABLE -->
         <div class="table-container">
             <table>
@@ -429,6 +466,7 @@ $saldo = $totalIncome - $totalExpense;
             </table>
         </div>
 
+
     </div>
 
     <!-- MODAL TAMBAH -->
@@ -456,6 +494,31 @@ $saldo = $totalIncome - $totalExpense;
         function openModal() { document.getElementById("modal").style.display = "flex"; }
         function closeModal() { document.getElementById("modal").style.display = "none"; }
     </script>
+
+    <script>
+        function confirmExport() {
+            document.getElementById("exportModal").style.display = "flex";
+        }
+
+        function closeExport() {
+            document.getElementById("exportModal").style.display = "none";
+        }
+
+        function doExport() {
+            window.location.href = "export_transactions.php";
+        }
+    </script>
+    <div class="modal" id="exportModal">
+        <div class="modal-content export-modal">
+            <h3>Export Laporan</h3>
+            <p>Apakah Anda yakin ingin mengunduh laporan transaksi?</p>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="doExport()">Ya</button>
+                <button class="btn btn-danger" onclick="closeExport()">Batal</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 
