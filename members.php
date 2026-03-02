@@ -65,6 +65,7 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
             justify-content: space-between;
         }
 
+
         .sidebar h2 {
             margin-bottom: 40px
         }
@@ -87,10 +88,33 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
             font-size: 14px;
         }
 
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
+        /* Hover hanya untuk menu biasa, bukan tombol */
+        .sidebar ul li a:not(.btn):hover,
+        .sidebar ul li a:not(.btn).active {
             background: #007bff;
-            color: #fff
+            color: #fff;
+        }
+
+        .sidebar ul li a.btn-danger {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar ul li a.btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.35);
+        }
+
+        .sidebar ul li a.btn-danger:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Khusus logout jangan ikut hover biru */
+        .sidebar ul li a.btn-danger:hover,
+        .sidebar ul li a.btn-danger:active {
+            background: #dc3545;
+            color: #fff;
         }
 
         .logout {
@@ -130,6 +154,8 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
             border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
+            min-width: 90px;
+            text-align: center;
         }
 
         .btn-primary {

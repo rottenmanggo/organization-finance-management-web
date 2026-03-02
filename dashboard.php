@@ -96,6 +96,7 @@ $recentQuery = $conn->query("
             justify-content: space-between;
         }
 
+
         .sidebar h2 {
             margin-bottom: 40px
         }
@@ -118,10 +119,33 @@ $recentQuery = $conn->query("
             font-size: 14px;
         }
 
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
+        /* Hover hanya untuk menu biasa, bukan tombol */
+        .sidebar ul li a:not(.btn):hover,
+        .sidebar ul li a:not(.btn).active {
             background: #007bff;
-            color: #fff
+            color: #fff;
+        }
+
+        .sidebar ul li a.btn-danger {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar ul li a.btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.35);
+        }
+
+        .sidebar ul li a.btn-danger:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Khusus logout jangan ikut hover biru */
+        .sidebar ul li a.btn-danger:hover,
+        .sidebar ul li a.btn-danger:active {
+            background: #dc3545;
+            color: #fff;
         }
 
         .logout {
@@ -173,6 +197,22 @@ $recentQuery = $conn->query("
             margin-top: 10px
         }
 
+        /* BUTTON */
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: #fff;
+        }
+
         /* CHART */
         .chart-container {
             height: 300px
@@ -187,6 +227,12 @@ $recentQuery = $conn->query("
             margin-top: 30px;
         }
 
+        .table-container h3 {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #888
+        }
+
         table {
             width: 100%;
             border-collapse: collapse
@@ -195,7 +241,8 @@ $recentQuery = $conn->query("
         th,
         td {
             padding: 12px;
-            font-size: 14px
+            font-size: 14px;
+            text-align: left;
         }
 
         th {
@@ -267,7 +314,7 @@ $recentQuery = $conn->query("
 
         <!-- TABLE -->
         <div class="table-container">
-            <h3>Recent Transactions</h3>
+            <h3>Laporan Transaksi</h3>
             <table>
                 <tr>
                     <th>Date</th>

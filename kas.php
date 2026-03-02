@@ -21,7 +21,26 @@ if (isset($_POST['batal'])) {
     $month = $_POST['month'];
     $year = $_POST['year'];
 
-    $stmt = $conn->prepare("UPDATE kas SET status='belum', amount=NULL WHERE member_id=? AND month=? AND year=?");
+    // Ambil income_id dulu
+    $getKas = $conn->prepare("SELECT income_id FROM kas WHERE member_id=? AND month=? AND year=?");
+    $getKas->bind_param("iii", $member_id, $month, $year);
+    $getKas->execute();
+    $result = $getKas->get_result()->fetch_assoc();
+
+    if ($result && $result['income_id']) {
+
+        // Hapus dari income
+        $deleteIncome = $conn->prepare("DELETE FROM income WHERE id=?");
+        $deleteIncome->bind_param("i", $result['income_id']);
+        $deleteIncome->execute();
+    }
+
+    // Update kas
+    $stmt = $conn->prepare("
+        UPDATE kas 
+        SET status='belum', amount=NULL, income_id=NULL 
+        WHERE member_id=? AND month=? AND year=?
+    ");
     $stmt->bind_param("iii", $member_id, $month, $year);
     $stmt->execute();
 
@@ -37,19 +56,65 @@ if (isset($_POST['bayar'])) {
     $year = $_POST['year'];
     $amount = 10000;
 
-    $check = $conn->prepare("SELECT id FROM kas WHERE member_id=? AND month=? AND year=?");
+    // Cek apakah sudah ada record kas
+    $check = $conn->prepare("SELECT id, status FROM kas WHERE member_id=? AND month=? AND year=?");
     $check->bind_param("iii", $member_id, $month, $year);
     $check->execute();
     $resultCheck = $check->get_result();
 
     if ($resultCheck->num_rows > 0) {
-        $stmt = $conn->prepare("UPDATE kas SET amount=?, status='lunas' WHERE member_id=? AND month=? AND year=?");
-        $stmt->bind_param("diii", $amount, $member_id, $month, $year);
-        $stmt->execute();
+
+        $row = $resultCheck->fetch_assoc();
+
+        if ($row['status'] == 'lunas') {
+            header("Location: kas.php?month=$month&year=$year");
+            exit;
+        }
+
+        // Insert ke income
+        $desc = "Kas Bulanan - Member ID $member_id ($month/$year)";
+        $date = date("Y-m-d");
+
+        $incomeStmt = $conn->prepare("
+            INSERT INTO income (description, amount, date) 
+            VALUES (?, ?, ?)
+        ");
+        $incomeStmt->bind_param("sds", $desc, $amount, $date);
+        $incomeStmt->execute();
+
+        $income_id = $incomeStmt->insert_id;
+
+        // Update kas
+        $update = $conn->prepare("
+            UPDATE kas 
+            SET amount=?, status='lunas', income_id=? 
+            WHERE member_id=? AND month=? AND year=?
+        ");
+        $update->bind_param("diiii", $amount, $income_id, $member_id, $month, $year);
+        $update->execute();
+
     } else {
-        $stmt = $conn->prepare("INSERT INTO kas (member_id, month, year, amount, status) VALUES (?, ?, ?, ?, 'lunas')");
-        $stmt->bind_param("iiid", $member_id, $month, $year, $amount);
-        $stmt->execute();
+
+        // Insert ke income dulu
+        $desc = "Kas Bulanan - Member ID $member_id ($month/$year)";
+        $date = date("Y-m-d");
+
+        $incomeStmt = $conn->prepare("
+            INSERT INTO income (description, amount, date) 
+            VALUES (?, ?, ?)
+        ");
+        $incomeStmt->bind_param("sds", $desc, $amount, $date);
+        $incomeStmt->execute();
+
+        $income_id = $incomeStmt->insert_id;
+
+        // Insert ke kas
+        $insertKas = $conn->prepare("
+            INSERT INTO kas (member_id, month, year, amount, status, income_id) 
+            VALUES (?, ?, ?, ?, 'lunas', ?)
+        ");
+        $insertKas->bind_param("iiidi", $member_id, $month, $year, $amount, $income_id);
+        $insertKas->execute();
     }
 
     header("Location: kas.php?month=$month&year=$year");
@@ -126,10 +191,33 @@ $members = $conn->query("
             font-size: 14px;
         }
 
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
+        /* Hover hanya untuk menu biasa, bukan tombol */
+        .sidebar ul li a:not(.btn):hover,
+        .sidebar ul li a:not(.btn).active {
             background: #007bff;
-            color: #fff
+            color: #fff;
+        }
+
+        .sidebar ul li a.btn-danger {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar ul li a.btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(220, 53, 69, 0.35);
+        }
+
+        .sidebar ul li a.btn-danger:active {
+            transform: translateY(1px);
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.25);
+        }
+
+        /* Khusus logout jangan ikut hover biru */
+        .sidebar ul li a.btn-danger:hover,
+        .sidebar ul li a.btn-danger:active {
+            background: #dc3545;
+            color: #fff;
         }
 
         .logout {
