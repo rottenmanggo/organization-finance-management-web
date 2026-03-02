@@ -9,20 +9,55 @@ if (!isset($_SESSION['user_id'])) {
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 
-// ================= TAMBAH MEMBER =================
-if (isset($_POST['tambah'])) {
-    $stmt = $conn->prepare("INSERT INTO members (name, division, angkatan, phone) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $_POST['name'], $_POST['division'], $_POST['angkatan'], $_POST['phone']);
+$selectedMonth = $_GET['month'] ?? date('n');
+$selectedYear = $_GET['year'] ?? date('Y');
+
+/* ================= BATALKAN PEMBAYARAN ================= */
+if (isset($_POST['batal'])) {
+
+    $member_id = $_POST['member_id'];
+    $month = $_POST['month'];
+    $year = $_POST['year'];
+
+    $stmt = $conn->prepare("UPDATE kas SET status='belum' WHERE member_id=? AND month=? AND year=?");
+    $stmt->bind_param("iii", $member_id, $month, $year);
     $stmt->execute();
 }
 
-// ================= HAPUS =================
-if (isset($_GET['hapus'])) {
-    $id = (int) $_GET['hapus'];
-    $conn->query("DELETE FROM members WHERE id=$id");
+/* ================= SIMPAN PEMBAYARAN ================= */
+if (isset($_POST['bayar'])) {
+
+    $member_id = $_POST['member_id'];
+    $month = $_POST['month'];
+    $year = $_POST['year'];
+    $amount = 10000; // Nominal tetap
+
+    $check = $conn->prepare("SELECT id FROM kas WHERE member_id=? AND month=? AND year=?");
+    $check->bind_param("iii", $member_id, $month, $year);
+    $check->execute();
+    $resultCheck = $check->get_result();
+
+    if ($resultCheck->num_rows > 0) {
+        $stmt = $conn->prepare("UPDATE kas SET amount=?, status='lunas' WHERE member_id=? AND month=? AND year=?");
+        $stmt->bind_param("diii", $amount, $member_id, $month, $year);
+        $stmt->execute();
+    } else {
+        $stmt = $conn->prepare("INSERT INTO kas (member_id, month, year, amount, status) VALUES (?, ?, ?, ?, 'lunas')");
+        $stmt->bind_param("iiid", $member_id, $month, $year, $amount);
+        $stmt->execute();
+    }
 }
 
-$result = $conn->query("SELECT * FROM members ORDER BY id DESC");
+/* ================= DATA MEMBER ================= */
+$members = $conn->query("
+    SELECT m.*, k.amount, k.status 
+    FROM members m
+    LEFT JOIN kas k 
+        ON m.id = k.member_id 
+        AND k.month = $selectedMonth 
+        AND k.year = $selectedYear
+    WHERE m.status='aktif'
+");
 ?>
 
 <!doctype html>
@@ -30,7 +65,7 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
 
 <head>
     <meta charset="UTF-8">
-    <title>Members | SIMAKAS</title>
+    <title>Kas | SIMAKAS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,9 +136,6 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
         }
 
         .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 25px
         }
 
@@ -131,16 +163,6 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
         .btn-primary {
             background: #007bff;
             color: #fff
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: #fff
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #000
         }
 
         .btn-success {
@@ -180,40 +202,38 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
             color: #155724
         }
 
-        .badge-secondary {
-            background: #e2e3e5;
-            color: #383d41
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24
         }
 
-        /* FORM MODAL SIMPLE */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, .4);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
+        /* FILTER */
+        .filter-box {
             background: #fff;
             padding: 20px;
             border-radius: 12px;
-            width: 350px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+            margin-bottom: 20px;
         }
 
-        .modal input {
-            width: 100%;
+        .filter-box select,
+        .filter-box input {
             padding: 8px;
-            margin-bottom: 10px;
             border-radius: 6px;
             border: 1px solid #ccc;
+            margin-right: 10px;
         }
     </style>
 </head>
+<script>function confirmBayar() {
+        return confirm("Yakin ingin menandai pembayaran Rp 10.000 sebagai LUNAS?");
+    }
+
+    function confirmBatal() {
+        return confirm("Yakin ingin membatalkan pembayaran ini?");
+    }
+
+</script>
 
 <body>
 
@@ -222,8 +242,8 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
             <h2>SIMAKAS</h2>
             <ul>
                 <li><a href="dashboard.php">Dashboard</a></li>
-                <li><a href="members.php" class="active">Members</a></li>
-                <li><a href="kas.php">Kas</a></li>
+                <li><a href="members.php">Members</a></li>
+                <li><a href="kas.php" class="active">Kas</a></li>
                 <li><a href="transactions.php">Transactions</a></li>
             </ul>
         </div>
@@ -237,10 +257,28 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
     <div class="main">
 
         <div class="topbar">
-            <h1>Members</h1>
-            <button class="btn btn-primary" onclick="openModal()">+ Tambah Member</button>
+            <h1>Kas Bulanan</h1>
         </div>
 
+        <!-- FILTER -->
+        <div class="filter-box">
+            <form method="GET">
+                <select name="month">
+                    <?php for ($m = 1; $m <= 12; $m++): ?>
+
+                        <option value="<?= $m ?>" <?= ($selectedMonth == $m) ? 'selected' : '' ?>>
+                            <?= date("F", mktime(0, 0, 0, $m, 1)) ?>
+                        </option>
+                    <?php endfor; ?>
+                </select>
+
+                <input type="number" name="year" value="<?= $selectedYear ?>" style="width:100px">
+
+                <button class="btn btn-primary">Filter</button>
+            </form>
+        </div>
+
+        <!-- TABLE -->
         <div class="card">
             <table>
                 <thead>
@@ -248,33 +286,59 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
                         <th>No</th>
                         <th>Nama</th>
                         <th>Divisi</th>
-                        <th>Angkatan</th>
-                        <th>HP</th>
                         <th>Status</th>
-                        <th>Aksi</th>
+                        <th>Nominal</th>
                     </tr>
                 </thead>
                 <tbody>
 
                     <?php $no = 1;
-                    while ($row = $result->fetch_assoc()): ?>
+                    while ($row = $members->fetch_assoc()): ?>
                         <tr>
+
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['name']) ?></td>
                             <td><?= htmlspecialchars($row['division']) ?></td>
-                            <td><?= htmlspecialchars($row['angkatan']) ?></td>
-                            <td><?= htmlspecialchars($row['phone']) ?></td>
+
                             <td>
-                                <?php if ($row['status'] == "aktif"): ?>
-                                    <span class="badge badge-success">Aktif</span>
+
+                                <?php if ($row['status'] == 'lunas'): ?>
+                                    <span class="badge badge-success">Lunas</span>
                                 <?php else: ?>
-                                    <span class="badge badge-secondary">Nonaktif</span>
+                                    <span class="badge badge-danger">Belum</span>
                                 <?php endif; ?>
                             </td>
+
                             <td>
-                                <a href="?hapus=<?= $row['id'] ?>" class="btn btn-danger"
-                                    onclick="return confirm('Yakin hapus?')">Hapus</a>
+                                <form method="POST"
+                                    style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+
+                                    <input type="hidden" name="member_id" value="<?= $row['id'] ?>">
+                                    <input type="hidden" name="month" value="<?= $selectedMonth ?>">
+                                    <input type="hidden" name="year" value="<?= $selectedYear ?>">
+
+                                    <?php if ($row['status'] == 'lunas'): ?>
+
+                                        <span>Rp <?= number_format($row['amount'], 0, ',', '.') ?></span>
+
+                                        <button name="batal" class="btn" style="background:#dc3545;color:#fff;"
+                                            onclick="return confirmBatal()">
+                                            Batal
+                                        </button>
+
+                                    <?php else: ?>
+
+                                        <span>Rp 10.000</span>
+
+                                        <button name="bayar" class="btn btn-success" onclick="return confirmBayar()">
+                                            Bayar
+                                        </button>
+
+                                    <?php endif; ?>
+
+                                </form>
                             </td>
+
                         </tr>
                     <?php endwhile; ?>
 
@@ -283,30 +347,6 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
         </div>
 
     </div>
-
-    <!-- MODAL -->
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <h3>Tambah Member</h3>
-            <form method="POST">
-                <input type="text" name="name" placeholder="Nama" required>
-                <input type="text" name="division" placeholder="Divisi" required>
-                <input type="text" name="angkatan" placeholder="Angkatan" required>
-                <input type="text" name="phone" placeholder="No HP" required>
-                <button type="submit" name="tambah" class="btn btn-primary">Simpan</button>
-                <button type="button" onclick="closeModal()" class="btn btn-danger">Batal</button>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openModal() {
-            document.getElementById("modal").style.display = "flex"
-        }
-        function closeModal() {
-            document.getElementById("modal").style.display = "none"
-        }
-    </script>
 
 </body>
 

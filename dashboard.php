@@ -7,213 +7,318 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$currentPage = basename($_SERVER['PHP_SELF']);
+/* ================= DATA SUMMARY ================= */
 
-// ================= DATA =================
-
-// Total Income
 $incomeQuery = $conn->query("SELECT SUM(amount) as total_income FROM income");
 $totalIncome = $incomeQuery->fetch_assoc()['total_income'] ?? 0;
 
-// Total Expense
 $expenseQuery = $conn->query("SELECT SUM(amount) as total_expense FROM expense");
 $totalExpense = $expenseQuery->fetch_assoc()['total_expense'] ?? 0;
 
-// Saldo
 $saldo = $totalIncome - $totalExpense;
 
-// Total Members Aktif
 $memberQuery = $conn->query("SELECT COUNT(*) as total_member FROM members WHERE status='aktif'");
 $totalMembers = $memberQuery->fetch_assoc()['total_member'] ?? 0;
 
-// Bulan & Tahun sekarang
-$currentMonth = date('n');
-$currentYear = date('Y');
+/* ================= DATA GRAFIK PER BULAN ================= */
 
-// Belum bayar bulan ini
-$kasQuery = $conn->query("
-    SELECT COUNT(*) as belum_bayar 
-    FROM kas 
-    WHERE month = $currentMonth 
-    AND year = $currentYear 
-    AND status = 'belum'
+$year = date('Y');
+
+$incomeData = [];
+$expenseData = [];
+
+for ($m = 1; $m <= 12; $m++) {
+
+    $incomeMonth = $conn->query("
+        SELECT SUM(amount) as total 
+        FROM income 
+        WHERE MONTH(date) = $m AND YEAR(date) = $year
+    ");
+    $incomeData[] = $incomeMonth->fetch_assoc()['total'] ?? 0;
+
+    $expenseMonth = $conn->query("
+        SELECT SUM(amount) as total 
+        FROM expense 
+        WHERE MONTH(date) = $m AND YEAR(date) = $year
+    ");
+    $expenseData[] = $expenseMonth->fetch_assoc()['total'] ?? 0;
+}
+
+/* ================= RECENT TRANSACTIONS ================= */
+
+$recentQuery = $conn->query("
+    SELECT date, description, amount, 'Income' as type FROM income
+    UNION ALL
+    SELECT date, description, amount, 'Expense' as type FROM expense
+    ORDER BY date DESC
+    LIMIT 5
 ");
-
-$belumBayar = $kasQuery->fetch_assoc()['belum_bayar'] ?? 0;
 ?>
 
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
-    <title>Dashboard | SIMAKAS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMAKAS Dashboard</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif
+        }
+
         body {
-            background-color: #f4f6f9;
+            display: flex;
+            background: #f4f6f9
         }
 
+        /* SIDEBAR */
         .sidebar {
-            height: 100vh;
-            background: #1e293b;
-            color: white;
-            position: fixed;
             width: 240px;
+            height: 100vh;
+            background: #1e1e2f;
+            color: #fff;
+            padding: 30px 20px;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .sidebar a {
-            color: #cbd5e1;
+        .sidebar h2 {
+            margin-bottom: 40px
+        }
+
+        .sidebar ul {
+            list-style: none
+        }
+
+        .sidebar ul li {
+            margin: 15px 0
+        }
+
+        .sidebar ul li a {
+            color: #ccc;
             text-decoration: none;
             display: block;
-            padding: 12px 20px;
-            transition: 0.2s;
+            padding: 8px 10px;
+            border-radius: 6px;
+            transition: .3s;
+            font-size: 14px;
         }
 
-        .sidebar a:hover {
-            background: #334155;
-            color: white;
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: #007bff;
+            color: #fff
         }
 
-        .active-menu {
-            background: #3b82f6 !important;
-            color: white !important;
-            font-weight: 500;
-            border-left: 4px solid #60a5fa;
+        .logout {
+            color: #ff4d4d
         }
 
-        .content {
+        /* MAIN */
+        .main {
             margin-left: 240px;
-            padding: 25px;
+            padding: 30px;
+            width: 100%
         }
 
-        .card-stat {
+        .topbar {
+            margin-bottom: 30px
+        }
+
+        .topbar h1 {
+            font-size: 22px
+        }
+
+        /* CARDS */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
             border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+            transition: .3s;
         }
 
-        .icon-box {
-            font-size: 28px;
-            opacity: 0.8;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, .08);
+        }
+
+        .card h3 {
+            font-size: 14px;
+            color: #888
+        }
+
+        .card h2 {
+            margin-top: 10px
+        }
+
+        /* CHART */
+        .chart-container {
+            height: 300px
+        }
+
+        /* TABLE */
+        .table-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 12px;
+            font-size: 14px
+        }
+
+        th {
+            background: #f1f1f1
+        }
+
+        tr:not(:last-child) {
+            border-bottom: 1px solid #eee
         }
     </style>
 </head>
 
 <body>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
-        <h4 class="text-center py-3 border-bottom">SIMAKAS</h4>
-
-        <a href="dashboard.php" class="<?= ($currentPage == 'dashboard.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-speedometer2"></i> Dashboard
-        </a>
-
-        <a href="members.php" class="<?= ($currentPage == 'members.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-people"></i> Members
-        </a>
-
-        <a href="kas.php" class="<?= ($currentPage == 'kas.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-cash"></i> Kas
-        </a>
-
-        <a href="income.php" class="<?= ($currentPage == 'income.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-down-circle"></i> Income
-        </a>
-
-        <a href="expense.php" class="<?= ($currentPage == 'expense.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-up-circle"></i> Expense
-        </a>
-
-        <a href="auth/logout.php" class="text-danger">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
+        <div>
+            <h2>SIMAKAS</h2>
+            <ul>
+                <li><a href="dashboard.php" class="active">Dashboard</a></li>
+                <li><a href="members.php">Members</a></li>
+                <li><a href="kas.php">Kas</a></li>
+                <li><a href="transactions.php">Transactions</a></li>
+            </ul>
+        </div>
+        <div>
+            <ul>
+                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+            </ul>
+        </div>
     </div>
 
-    <!-- CONTENT -->
-    <div class="content">
+    <div class="main">
 
-        <!-- TOPBAR -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>Dashboard</h3>
-            <div>
-                <span class="me-2"><?= $_SESSION['username']; ?></span>
-                <span class="badge bg-dark"><?= $_SESSION['role']; ?></span>
+        <div class="topbar">
+            <h1>Dashboard</h1>
+        </div>
+
+        <!-- SUMMARY CARDS -->
+        <div class="cards">
+            <div class="card">
+                <h3>Total Kas</h3>
+                <h2>Rp <?= number_format($saldo, 0, ',', '.') ?></h2>
+            </div>
+
+            <div class="card">
+                <h3>Total Income</h3>
+                <h2>Rp <?= number_format($totalIncome, 0, ',', '.') ?></h2>
+            </div>
+
+            <div class="card">
+                <h3>Total Expense</h3>
+                <h2>Rp <?= number_format($totalExpense, 0, ',', '.') ?></h2>
+            </div>
+
+            <div class="card">
+                <h3>Total Members</h3>
+                <h2><?= $totalMembers ?></h2>
             </div>
         </div>
 
-        <!-- STAT CARDS -->
-        <div class="row">
-
-            <div class="col-md-3 mb-4">
-                <div class="card card-stat shadow-sm border-0">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Income</p>
-                            <h5>Rp <?= number_format($totalIncome, 0, ',', '.'); ?></h5>
-                        </div>
-                        <div class="text-success icon-box">
-                            <i class="bi bi-arrow-down-circle-fill"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 mb-4">
-                <div class="card card-stat shadow-sm border-0">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Total Expense</p>
-                            <h5>Rp <?= number_format($totalExpense, 0, ',', '.'); ?></h5>
-                        </div>
-                        <div class="text-danger icon-box">
-                            <i class="bi bi-arrow-up-circle-fill"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 mb-4">
-                <div class="card card-stat shadow-sm border-0">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Saldo</p>
-                            <h5>Rp <?= number_format($saldo, 0, ',', '.'); ?></h5>
-                        </div>
-                        <div class="text-primary icon-box">
-                            <i class="bi bi-wallet2"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3 mb-4">
-                <div class="card card-stat shadow-sm border-0">
-                    <div class="card-body d-flex justify-content-between align-items-center">
-                        <div>
-                            <p class="text-muted mb-1">Belum Bayar</p>
-                            <h5><?= $belumBayar; ?> Orang</h5>
-                        </div>
-                        <div class="text-warning icon-box">
-                            <i class="bi bi-exclamation-circle-fill"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        <!-- CHART -->
+        <div class="card chart-container">
+            <h3>Financial Overview (<?= $year ?>)</h3>
+            <canvas id="financeChart"></canvas>
         </div>
 
-        <!-- MEMBER INFO -->
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <h5>Total Anggota Aktif</h5>
-                <h4><?= $totalMembers; ?> Orang</h4>
-            </div>
+        <!-- TABLE -->
+        <div class="table-container">
+            <h3>Recent Transactions</h3>
+            <table>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                </tr>
+
+                <?php while ($row = $recentQuery->fetch_assoc()): ?>
+                    <tr>
+                        <td><?= date("d-m-Y", strtotime($row['date'])) ?></td>
+                        <td><?= htmlspecialchars($row['description']) ?></td>
+                        <td style="color:<?= $row['type'] == 'Income' ? '#28a745' : '#dc3545' ?>;font-weight:600">
+                            <?= $row['type'] ?>
+                        </td>
+                        <td>Rp <?= number_format($row['amount'], 0, ',', '.') ?></td>
+                    </tr>
+                <?php endwhile; ?>
+
+            </table>
         </div>
 
     </div>
+
+    <script>
+        const ctx = document.getElementById("financeChart");
+
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+                datasets: [
+                    {
+                        label: "Income",
+                        data: <?= json_encode($incomeData); ?>,
+                        backgroundColor: "#28a745",
+                        borderRadius: 6
+                    },
+                    {
+                        label: "Expense",
+                        data: <?= json_encode($expenseData); ?>,
+                        backgroundColor: "#dc3545",
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: "top" }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
 
 </body>
 

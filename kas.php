@@ -7,18 +7,31 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$currentPage = basename($_SERVER['PHP_SELF']);
-
 $selectedMonth = $_GET['month'] ?? date('n');
 $selectedYear = $_GET['year'] ?? date('Y');
 
-/* ================= SIMPAN PEMBAYARAN ================= */
+/* ================= BATAL ================= */
+if (isset($_POST['batal'])) {
+
+    $member_id = $_POST['member_id'];
+    $month = $_POST['month'];
+    $year = $_POST['year'];
+
+    $stmt = $conn->prepare("UPDATE kas SET status='belum', amount=NULL WHERE member_id=? AND month=? AND year=?");
+    $stmt->bind_param("iii", $member_id, $month, $year);
+    $stmt->execute();
+
+    header("Location: kas.php?month=$month&year=$year");
+    exit;
+}
+
+/* ================= BAYAR ================= */
 if (isset($_POST['bayar'])) {
 
     $member_id = $_POST['member_id'];
-    $amount = $_POST['amount'];
     $month = $_POST['month'];
     $year = $_POST['year'];
+    $amount = 10000;
 
     $check = $conn->prepare("SELECT id FROM kas WHERE member_id=? AND month=? AND year=?");
     $check->bind_param("iii", $member_id, $month, $year);
@@ -34,9 +47,12 @@ if (isset($_POST['bayar'])) {
         $stmt->bind_param("iiid", $member_id, $month, $year, $amount);
         $stmt->execute();
     }
+
+    header("Location: kas.php?month=$month&year=$year");
+    exit;
 }
 
-/* ================= DATA MEMBER ================= */
+/* ================= DATA ================= */
 $members = $conn->query("
     SELECT m.*, k.amount, k.status 
     FROM members m
@@ -47,165 +63,316 @@ $members = $conn->query("
     WHERE m.status='aktif'
 ");
 ?>
-<!DOCTYPE html>
+
+<!doctype html>
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <title>Kas | SIMAKAS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif
+        }
+
         body {
-            background: #f4f6f9;
+            display: flex;
+            background: #f4f6f9
         }
 
+        /* SIDEBAR */
         .sidebar {
-            height: 100vh;
-            background: #1e293b;
-            position: fixed;
             width: 240px;
-            color: white;
+            height: 100vh;
+            background: #1e1e2f;
+            color: #fff;
+            padding: 30px 20px;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .sidebar a {
-            display: block;
-            padding: 12px 20px;
-            color: #cbd5e1;
+        .sidebar h2 {
+            margin-bottom: 40px
+        }
+
+        .sidebar ul {
+            list-style: none
+        }
+
+        .sidebar ul li {
+            margin: 15px 0
+        }
+
+        .sidebar ul li a {
+            color: #ccc;
             text-decoration: none;
+            display: block;
+            padding: 8px 10px;
+            border-radius: 6px;
+            transition: .3s;
+            font-size: 14px;
         }
 
-        .sidebar a:hover {
-            background: #334155;
-            color: white;
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: #007bff;
+            color: #fff
         }
 
-        .active-menu {
-            background: #3b82f6 !important;
-            color: white !important;
-            border-left: 4px solid #60a5fa;
+        .logout {
+            color: #ff4d4d
         }
 
-        .content {
+        /* MAIN */
+        .main {
             margin-left: 240px;
+            padding: 30px;
+            width: 100%
+        }
+
+        .topbar {
+            margin-bottom: 25px
+        }
+
+        .topbar h1 {
+            font-size: 22px
+        }
+
+        /* CARD */
+        .card {
+            background: #fff;
             padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+        }
+
+        /* FILTER */
+        .filter-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+            margin-bottom: 20px;
+        }
+
+        .filter-box select,
+        .filter-box input {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+
+        /* BUTTON */
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: #fff
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: #fff
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: #fff
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 12px;
+            font-size: 14px
+        }
+
+        th {
+            background: #f1f1f1;
+            text-align: left
+        }
+
+        tr:not(:last-child) {
+            border-bottom: 1px solid #eee
+        }
+
+        /* LOCK COLUMN WIDTH */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 60px;
+            text-align: center;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 220px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 180px;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 120px;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 260px;
+        }
+
+        /* BADGE */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24
         }
     </style>
 </head>
 
 <body>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
-        <h4 class="text-center py-3 border-bottom">SIMAKAS</h4>
-
-        <a href="dashboard.php" class="<?= ($currentPage == 'dashboard.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-speedometer2"></i> Dashboard
-        </a>
-        <a href="members.php" class="<?= ($currentPage == 'members.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-people"></i> Members
-        </a>
-        <a href="kas.php" class="<?= ($currentPage == 'kas.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-cash"></i> Kas
-        </a>
-        <a href="income.php" class="<?= ($currentPage == 'income.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-down-circle"></i> Income
-        </a>
-        <a href="expense.php" class="<?= ($currentPage == 'expense.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-up-circle"></i> Expense
-        </a>
-        <a href="auth/logout.php" class="text-danger">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
+        <div>
+            <h2>SIMAKAS</h2>
+            <ul>
+                <li><a href="dashboard.php">Dashboard</a></li>
+                <li><a href="members.php">Members</a></li>
+                <li><a href="kas.php" class="active">Kas</a></li>
+                <li><a href="transactions.php">Transactions</a></li>
+            </ul>
+        </div>
+        <div>
+            <ul>
+                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+            </ul>
+        </div>
     </div>
 
-    <!-- CONTENT -->
-    <div class="content">
+    <div class="main">
 
-        <h3 class="mb-4">Kas Bulanan</h3>
+        <div class="topbar">
+            <h1>Kas Bulanan</h1>
+        </div>
 
-        <!-- FILTER BULAN -->
-        <form class="row mb-4" method="GET">
-            <div class="col-md-3">
-                <select name="month" class="form-select">
+        <div class="filter-box">
+            <form method="GET">
+                <select name="month">
                     <?php for ($m = 1; $m <= 12; $m++): ?>
                         <option value="<?= $m ?>" <?= ($selectedMonth == $m) ? 'selected' : '' ?>>
-                            <?= date("F", mktime(0, 0, 0, $m, 1)); ?>
+                            <?= date("F", mktime(0, 0, 0, $m, 1)) ?>
                         </option>
                     <?php endfor; ?>
                 </select>
-            </div>
-            <div class="col-md-3">
-                <input type="number" name="year" class="form-control" value="<?= $selectedYear ?>">
-            </div>
-            <div class="col-md-2">
+
+                <input type="number" name="year" value="<?= $selectedYear ?>" style="width:100px">
                 <button class="btn btn-primary">Filter</button>
-            </div>
-        </form>
+            </form>
+        </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-light">
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama</th>
+                        <th>Divisi</th>
+                        <th>Status</th>
+                        <th>Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <?php $no = 1;
+                    while ($row = $members->fetch_assoc()): ?>
                         <tr>
-                            <th>No</th>
-                            <th>Nama</th>
-                            <th>Divisi</th>
-                            <th>Status</th>
-                            <th>Nominal</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                            <td><?= $no++ ?></td>
+                            <td><?= htmlspecialchars($row['name']) ?></td>
+                            <td><?= htmlspecialchars($row['division']) ?></td>
 
-                        <?php $no = 1;
-                        while ($row = $members->fetch_assoc()): ?>
-                            <tr>
-                                <td>
-                                    <?= $no++ ?>
-                                </td>
-                                <td>
-                                    <?= $row['name'] ?>
-                                </td>
-                                <td>
-                                    <?= $row['division'] ?>
-                                </td>
+                            <td>
+                                <?php if ($row['status'] == 'lunas'): ?>
+                                    <span class="badge badge-success">Lunas</span>
+                                <?php else: ?>
+                                    <span class="badge badge-danger">Belum</span>
+                                <?php endif; ?>
+                            </td>
 
-                                <td>
+                            <td>
+                                <form method="POST" style="display:flex;align-items:center;gap:12px;width:100%;">
+                                    <input type="hidden" name="member_id" value="<?= $row['id'] ?>">
+                                    <input type="hidden" name="month" value="<?= $selectedMonth ?>">
+                                    <input type="hidden" name="year" value="<?= $selectedYear ?>">
+
+                                    <span style="flex:1;">
+                                        Rp
+                                        <?= $row['status'] == 'lunas' ? number_format($row['amount'], 0, ',', '.') : '10.000' ?>
+                                    </span>
+
                                     <?php if ($row['status'] == 'lunas'): ?>
-                                        <span class="badge bg-success">Lunas</span>
+                                        <button name="batal" class="btn btn-danger"
+                                            onclick="return confirmBatal()">Batal</button>
                                     <?php else: ?>
-                                        <span class="badge bg-danger">Belum</span>
+                                        <button name="bayar" class="btn btn-success"
+                                            onclick="return confirmBayar()">Bayar</button>
                                     <?php endif; ?>
-                                </td>
 
-                                <td>
-                                    <?= $row['amount'] ? "Rp " . number_format($row['amount'], 0, ',', '.') : "-" ?>
-                                </td>
+                                </form>
+                            </td>
 
-                                <td>
-                                    <form method="POST" class="d-flex">
-                                        <input type="hidden" name="member_id" value="<?= $row['id'] ?>">
-                                        <input type="hidden" name="month" value="<?= $selectedMonth ?>">
-                                        <input type="hidden" name="year" value="<?= $selectedYear ?>">
-                                        <input type="number" name="amount" class="form-control me-2" placeholder="Nominal"
-                                            required>
-                                        <button name="bayar" class="btn btn-success btn-sm">
-                                            Bayar
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
+                        </tr>
+                    <?php endwhile; ?>
 
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         </div>
 
     </div>
+
+    <script>
+        function confirmBayar() {
+            return confirm("Yakin ingin menandai pembayaran Rp 10.000 sebagai LUNAS?");
+        }
+        function confirmBatal() {
+            return confirm("Yakin ingin membatalkan pembayaran ini?");
+        }
+    </script>
+
 </body>
 
 </html>
