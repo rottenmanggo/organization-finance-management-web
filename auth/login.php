@@ -165,12 +165,9 @@ if (isset($_POST['login'])) {
             padding: 14px 50px;
             border: none;
             border-radius: 30px;
-<<<<<<< HEAD
-            background: #1d7db0;
-=======
-            background: #1eb0ff;
->>>>>>> 25ec46938720ad8b52700d07bffb3a3d0949c525
-            color: #fff;
+            <<<<<<< HEAD background: #1d7db0;
+            =======background: #1eb0ff;
+            >>>>>>>25ec46938720ad8b52700d07bffb3a3d0949c525 color: #fff;
             font-weight: 600;
             cursor: pointer;
             display: block;
@@ -196,11 +193,7 @@ if (isset($_POST['login'])) {
         }
 
         .overlay {
-<<<<<<< HEAD
-            background: #1d7db0;
-=======
             background: #1eb0ff;
->>>>>>> 25ec46938720ad8b52700d07bffb3a3d0949c525
             color: #fff;
             position: relative;
             left: -100%;
