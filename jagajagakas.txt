@@ -12,13 +12,25 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 $selectedMonth = $_GET['month'] ?? date('n');
 $selectedYear = $_GET['year'] ?? date('Y');
 
+/* ================= BATALKAN PEMBAYARAN ================= */
+if (isset($_POST['batal'])) {
+
+    $member_id = $_POST['member_id'];
+    $month = $_POST['month'];
+    $year = $_POST['year'];
+
+    $stmt = $conn->prepare("UPDATE kas SET status='belum' WHERE member_id=? AND month=? AND year=?");
+    $stmt->bind_param("iii", $member_id, $month, $year);
+    $stmt->execute();
+}
+
 /* ================= SIMPAN PEMBAYARAN ================= */
 if (isset($_POST['bayar'])) {
 
     $member_id = $_POST['member_id'];
-    $amount = $_POST['amount'];
     $month = $_POST['month'];
     $year = $_POST['year'];
+    $amount = 10000; // Nominal tetap
 
     $check = $conn->prepare("SELECT id FROM kas WHERE member_id=? AND month=? AND year=?");
     $check->bind_param("iii", $member_id, $month, $year);
@@ -213,6 +225,15 @@ $members = $conn->query("
         }
     </style>
 </head>
+<script>function confirmBayar() {
+        return confirm("Yakin ingin menandai pembayaran Rp 10.000 sebagai LUNAS?");
+    }
+
+    function confirmBatal() {
+        return confirm("Yakin ingin membatalkan pembayaran ini?");
+    }
+
+</script>
 
 <body>
 
@@ -289,19 +310,32 @@ $members = $conn->query("
                             </td>
 
                             <td>
-                                <form method="POST" style="display:flex;gap:8px;align-items:center;">
+                                <form method="POST"
+                                    style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+
                                     <input type="hidden" name="member_id" value="<?= $row['id'] ?>">
                                     <input type="hidden" name="month" value="<?= $selectedMonth ?>">
                                     <input type="hidden" name="year" value="<?= $selectedYear ?>">
 
-                                    <?php if ($row['amount']): ?>
+                                    <?php if ($row['status'] == 'lunas'): ?>
+
                                         <span>Rp <?= number_format($row['amount'], 0, ',', '.') ?></span>
+
+                                        <button name="batal" class="btn" style="background:#dc3545;color:#fff;"
+                                            onclick="return confirmBatal()">
+                                            Batal
+                                        </button>
+
                                     <?php else: ?>
-                                        <input type="number" name="amount" placeholder="Nominal"
-                                            style="width:120px;padding:6px;border-radius:6px;border:1px solid #ccc;" required>
+
+                                        <span>Rp 10.000</span>
+
+                                        <button name="bayar" class="btn btn-success" onclick="return confirmBayar()">
+                                            Bayar
+                                        </button>
+
                                     <?php endif; ?>
 
-                                    <button name="bayar" class="btn btn-success">Bayar</button>
                                 </form>
                             </td>
 

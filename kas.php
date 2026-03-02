@@ -7,30 +7,31 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$currentPage = basename($_SERVER['PHP_SELF']);
-
 $selectedMonth = $_GET['month'] ?? date('n');
 $selectedYear = $_GET['year'] ?? date('Y');
 
-/* ================= BATALKAN PEMBAYARAN ================= */
+/* ================= BATAL ================= */
 if (isset($_POST['batal'])) {
 
     $member_id = $_POST['member_id'];
     $month = $_POST['month'];
     $year = $_POST['year'];
 
-    $stmt = $conn->prepare("UPDATE kas SET status='belum' WHERE member_id=? AND month=? AND year=?");
+    $stmt = $conn->prepare("UPDATE kas SET status='belum', amount=NULL WHERE member_id=? AND month=? AND year=?");
     $stmt->bind_param("iii", $member_id, $month, $year);
     $stmt->execute();
+
+    header("Location: kas.php?month=$month&year=$year");
+    exit;
 }
 
-/* ================= SIMPAN PEMBAYARAN ================= */
+/* ================= BAYAR ================= */
 if (isset($_POST['bayar'])) {
 
     $member_id = $_POST['member_id'];
     $month = $_POST['month'];
     $year = $_POST['year'];
-    $amount = 10000; // Nominal tetap
+    $amount = 10000;
 
     $check = $conn->prepare("SELECT id FROM kas WHERE member_id=? AND month=? AND year=?");
     $check->bind_param("iii", $member_id, $month, $year);
@@ -46,9 +47,12 @@ if (isset($_POST['bayar'])) {
         $stmt->bind_param("iiid", $member_id, $month, $year, $amount);
         $stmt->execute();
     }
+
+    header("Location: kas.php?month=$month&year=$year");
+    exit;
 }
 
-/* ================= DATA MEMBER ================= */
+/* ================= DATA ================= */
 $members = $conn->query("
     SELECT m.*, k.amount, k.status 
     FROM members m
@@ -78,15 +82,7 @@ $members = $conn->query("
             font-family: "Poppins", sans-serif
         }
 
-        <script>function confirmBayar() {
-            return confirm("Yakin ingin menandai pembayaran Rp 10.000 sebagai LUNAS?");
-        }
-
-        function confirmBatal() {
-            return confirm("Yakin ingin membatalkan pembayaran ini?");
-        }
-
-        </script>body {
+        body {
             display: flex;
             background: #f4f6f9
         }
@@ -159,62 +155,6 @@ $members = $conn->query("
             box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
         }
 
-        /* BUTTON */
-        .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: #fff
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: #fff
-        }
-
-        /* TABLE */
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 8px 10px;
-            text-align: left;
-            font-size: 14px
-        }
-
-        th {
-            background: #f1f1f1
-        }
-
-        tr:not(:last-child) {
-            border-bottom: 1px solid #eee
-        }
-
-        .badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
-        .badge-success {
-            background: #d4edda;
-            color: #155724
-        }
-
-        .badge-danger {
-            background: #f8d7da;
-            color: #721c24
-        }
-
         /* FILTER */
         .filter-box {
             background: #fff;
@@ -230,6 +170,97 @@ $members = $conn->query("
             border-radius: 6px;
             border: 1px solid #ccc;
             margin-right: 10px;
+        }
+
+        /* BUTTON */
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: #fff
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: #fff
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: #fff
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 12px;
+            font-size: 14px
+        }
+
+        th {
+            background: #f1f1f1;
+            text-align: left
+        }
+
+        tr:not(:last-child) {
+            border-bottom: 1px solid #eee
+        }
+
+        /* LOCK COLUMN WIDTH */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 60px;
+            text-align: center;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 220px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 180px;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 120px;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 260px;
+        }
+
+        /* BADGE */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724
+        }
+
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24
         }
     </style>
 </head>
@@ -259,12 +290,10 @@ $members = $conn->query("
             <h1>Kas Bulanan</h1>
         </div>
 
-        <!-- FILTER -->
         <div class="filter-box">
             <form method="GET">
                 <select name="month">
                     <?php for ($m = 1; $m <= 12; $m++): ?>
-
                         <option value="<?= $m ?>" <?= ($selectedMonth == $m) ? 'selected' : '' ?>>
                             <?= date("F", mktime(0, 0, 0, $m, 1)) ?>
                         </option>
@@ -272,12 +301,10 @@ $members = $conn->query("
                 </select>
 
                 <input type="number" name="year" value="<?= $selectedYear ?>" style="width:100px">
-
                 <button class="btn btn-primary">Filter</button>
             </form>
         </div>
 
-        <!-- TABLE -->
         <div class="card">
             <table>
                 <thead>
@@ -294,13 +321,11 @@ $members = $conn->query("
                     <?php $no = 1;
                     while ($row = $members->fetch_assoc()): ?>
                         <tr>
-
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['name']) ?></td>
                             <td><?= htmlspecialchars($row['division']) ?></td>
 
                             <td>
-
                                 <?php if ($row['status'] == 'lunas'): ?>
                                     <span class="badge badge-success">Lunas</span>
                                 <?php else: ?>
@@ -309,30 +334,22 @@ $members = $conn->query("
                             </td>
 
                             <td>
-                                <form method="POST" style="display:flex;gap:8px;align-items:center;">
-
+                                <form method="POST" style="display:flex;align-items:center;gap:12px;width:100%;">
                                     <input type="hidden" name="member_id" value="<?= $row['id'] ?>">
                                     <input type="hidden" name="month" value="<?= $selectedMonth ?>">
                                     <input type="hidden" name="year" value="<?= $selectedYear ?>">
 
+                                    <span style="flex:1;">
+                                        Rp
+                                        <?= $row['status'] == 'lunas' ? number_format($row['amount'], 0, ',', '.') : '10.000' ?>
+                                    </span>
+
                                     <?php if ($row['status'] == 'lunas'): ?>
-
-                                        <span style="font-weight:600;">
-                                            Rp <?= number_format($row['amount'], 0, ',', '.') ?>
-                                        </span>
-
-                                        <button name="batal" class="btn" style="background:#dc3545;color:#fff;">
-                                            Batal
-                                        </button>
-
+                                        <button name="batal" class="btn btn-danger"
+                                            onclick="return confirmBatal()">Batal</button>
                                     <?php else: ?>
-
-                                        <span style="color:#999;">Rp 10.000</span>
-
-                                        <button name="bayar" class="btn btn-success">
-                                            Bayar
-                                        </button>
-
+                                        <button name="bayar" class="btn btn-success"
+                                            onclick="return confirmBayar()">Bayar</button>
                                     <?php endif; ?>
 
                                 </form>
@@ -346,6 +363,15 @@ $members = $conn->query("
         </div>
 
     </div>
+
+    <script>
+        function confirmBayar() {
+            return confirm("Yakin ingin menandai pembayaran Rp 10.000 sebagai LUNAS?");
+        }
+        function confirmBatal() {
+            return confirm("Yakin ingin membatalkan pembayaran ini?");
+        }
+    </script>
 
 </body>
 
