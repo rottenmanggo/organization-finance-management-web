@@ -2,6 +2,8 @@
 session_start();
 require_once "config/database.php";
 
+$currentPage = basename($_SERVER['PHP_SELF']);
+
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
@@ -154,6 +156,20 @@ $members = $conn->query("
         body {
             display: flex;
             background: #f4f6f9
+        }
+
+        /* ICON */
+        .menu-link {
+            display: flex !important;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-icon {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            filter: invert(1);
         }
 
         /* SIDEBAR */
@@ -363,10 +379,29 @@ $members = $conn->query("
         <div>
             <h2>SIMAKAS</h2>
             <ul>
-                <li><a href="dashboard.php">Dashboard</a></li>
-                <li><a href="members.php">Members</a></li>
-                <li><a href="kas.php" class="active">Kas</a></li>
-                <li><a href="transactions.php">Transactions</a></li>
+                <li>
+                    <a href="dashboard.php" class="menu-link <?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
+                        <img src="assets/dashboard.svg" class="menu-icon">
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="members.php" class="menu-link <?= $currentPage == 'members.php' ? 'active' : '' ?>">
+                        <img src="assets/member.svg" class="menu-icon">
+                        <span>Members</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="kas.php" class="menu-link <?= $currentPage == 'kas.php' ? 'active' : '' ?>">
+                        <img src="assets/kas.svg" class="menu-icon">
+                        <span>Kas</span>
+                    </a>
+                <li>
+                    <a href="transactions.php" class="menu-link <?= $currentPage == 'transactions.php' ? 'active' : '' ?>">
+                        <img src="assets/transaction.svg" class="menu-icon">
+                        <span>Transactions</span>
+                    </a>
+                <li>
             </ul>
         </div>
         <div>
