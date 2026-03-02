@@ -11,26 +11,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 // ================= TAMBAH MEMBER =================
 if (isset($_POST['tambah'])) {
-    $name = $_POST['name'];
-    $division = $_POST['division'];
-    $angkatan = $_POST['angkatan'];
-    $phone = $_POST['phone'];
-
     $stmt = $conn->prepare("INSERT INTO members (name, division, angkatan, phone) VALUES (?, ?, ?, ?)");
-    $stmt->bind_param("ssss", $name, $division, $angkatan, $phone);
-    $stmt->execute();
-}
-
-// ================= UPDATE MEMBER =================
-if (isset($_POST['update'])) {
-    $id = $_POST['id'];
-    $name = $_POST['name'];
-    $division = $_POST['division'];
-    $angkatan = $_POST['angkatan'];
-    $phone = $_POST['phone'];
-
-    $stmt = $conn->prepare("UPDATE members SET name=?, division=?, angkatan=?, phone=? WHERE id=?");
-    $stmt->bind_param("ssssi", $name, $division, $angkatan, $phone, $id);
+    $stmt->bind_param("ssss", $_POST['name'], $_POST['division'], $_POST['angkatan'], $_POST['phone']);
     $stmt->execute();
 }
 
@@ -40,198 +22,292 @@ if (isset($_GET['hapus'])) {
     $conn->query("DELETE FROM members WHERE id=$id");
 }
 
-// ================= UPDATE STATUS =================
-if (isset($_GET['nonaktif'])) {
-    $id = (int) $_GET['nonaktif'];
-    $conn->query("UPDATE members SET status='nonaktif' WHERE id=$id");
-}
-
-if (isset($_GET['aktif'])) {
-    $id = (int) $_GET['aktif'];
-    $conn->query("UPDATE members SET status='aktif' WHERE id=$id");
-}
-
-// ================= AMBIL DATA =================
 $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
 ?>
 
-<!DOCTYPE html>
+<!doctype html>
 <html>
 
 <head>
+    <meta charset="UTF-8">
     <title>Members | SIMAKAS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif
+        }
+
         body {
-            background-color: #f4f6f9;
+            display: flex;
+            background: #f4f6f9
         }
 
+        /* SIDEBAR */
         .sidebar {
-            height: 100vh;
-            background: #1e293b;
-            color: white;
-            position: fixed;
             width: 240px;
+            height: 100vh;
+            background: #1e1e2f;
+            color: #fff;
+            padding: 30px 20px;
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        .sidebar a {
-            color: #cbd5e1;
+        .sidebar h2 {
+            margin-bottom: 40px
+        }
+
+        .sidebar ul {
+            list-style: none
+        }
+
+        .sidebar ul li {
+            margin: 15px 0
+        }
+
+        .sidebar ul li a {
+            color: #ccc;
             text-decoration: none;
             display: block;
-            padding: 12px 20px;
-            transition: 0.2s;
+            padding: 8px 10px;
+            border-radius: 6px;
+            transition: .3s;
+            font-size: 14px;
         }
 
-        .sidebar a:hover {
-            background: #334155;
-            color: white;
+        .sidebar ul li a:hover,
+        .sidebar ul li a.active {
+            background: #007bff;
+            color: #fff
         }
 
-        .active-menu {
-            background: #3b82f6 !important;
-            color: white !important;
-            font-weight: 500;
-            border-left: 4px solid #60a5fa;
+        .logout {
+            color: #ff4d4d
         }
 
-        .content {
+        /* MAIN */
+        .main {
             margin-left: 240px;
+            padding: 30px;
+            width: 100%
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px
+        }
+
+        .topbar h1 {
+            font-size: 22px
+        }
+
+        /* CARD */
+        .card {
+            background: #fff;
             padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
+        }
+
+        /* BUTTON */
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: #fff
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: #fff
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #000
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: #fff
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            font-size: 14px
+        }
+
+        th {
+            background: #f1f1f1
+        }
+
+        tr:not(:last-child) {
+            border-bottom: 1px solid #eee
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724
+        }
+
+        .badge-secondary {
+            background: #e2e3e5;
+            color: #383d41
+        }
+
+        /* FORM MODAL SIMPLE */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, .4);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            width: 350px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
-        <h4 class="text-center py-3 border-bottom">SIMAKAS</h4>
-
-        <a href="dashboard.php" class="<?= ($currentPage == 'dashboard.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-speedometer2"></i> Dashboard
-        </a>
-
-        <a href="members.php" class="<?= ($currentPage == 'members.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-people"></i> Members
-        </a>
-
-        <a href="kas.php" class="<?= ($currentPage == 'kas.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-cash"></i> Kas
-        </a>
-
-        <a href="income.php" class="<?= ($currentPage == 'income.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-down-circle"></i> Income
-        </a>
-
-        <a href="expense.php" class="<?= ($currentPage == 'expense.php') ? 'active-menu' : '' ?>">
-            <i class="bi bi-arrow-up-circle"></i> Expense
-        </a>
-
-        <a href="auth/logout.php" class="text-danger">
-            <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
+        <div>
+            <h2>SIMAKAS</h2>
+            <ul>
+                <li><a href="dashboard.php">Dashboard</a></li>
+                <li><a href="members.php" class="active">Members</a></li>
+                <li><a href="kas.php">Kas</a></li>
+                <li><a href="transactions.php">Transactions</a></li>
+            </ul>
+        </div>
+        <div>
+            <ul>
+                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+            </ul>
+        </div>
     </div>
 
-    <!-- CONTENT -->
-    <div class="content">
+    <div class="main">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3>Members</h3>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tambahModal">
-                <i class="bi bi-plus-circle"></i> Tambah Member
-            </button>
+        <div class="topbar">
+            <h1>Members</h1>
+            <button class="btn btn-primary" onclick="openModal()">+ Tambah Member</button>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-light">
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama</th>
+                        <th>Divisi</th>
+                        <th>Angkatan</th>
+                        <th>HP</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <?php $no = 1;
+                    while ($row = $result->fetch_assoc()): ?>
                         <tr>
-                            <th>No</th>
-                            <th>Nama</th>
-                            <th>Divisi</th>
-                            <th>Angkatan</th>
-                            <th>HP</th>
-                            <th>Status</th>
-                            <th width="200">Aksi</th>
+                            <td><?= $no++ ?></td>
+                            <td><?= htmlspecialchars($row['name']) ?></td>
+                            <td><?= htmlspecialchars($row['division']) ?></td>
+                            <td><?= htmlspecialchars($row['angkatan']) ?></td>
+                            <td><?= htmlspecialchars($row['phone']) ?></td>
+                            <td>
+                                <?php if ($row['status'] == "aktif"): ?>
+                                    <span class="badge badge-success">Aktif</span>
+                                <?php else: ?>
+                                    <span class="badge badge-secondary">Nonaktif</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <a href="?hapus=<?= $row['id'] ?>" class="btn btn-danger"
+                                    onclick="return confirm('Yakin hapus?')">Hapus</a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php $no = 1;
-                        while ($row = $result->fetch_assoc()): ?>
-                            <tr>
-                                <td><?= $no++; ?></td>
-                                <td><?= $row['name']; ?></td>
-                                <td><?= $row['division']; ?></td>
-                                <td><?= $row['angkatan']; ?></td>
-                                <td><?= $row['phone']; ?></td>
-                                <td>
-                                    <?php if ($row['status'] == 'aktif'): ?>
-                                        <span class="badge bg-success">Aktif</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Nonaktif</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <button class="btn btn-info btn-sm" data-bs-toggle="modal"
-                                        data-bs-target="#editModal<?= $row['id']; ?>">
-                                        Edit
-                                    </button>
+                    <?php endwhile; ?>
 
-                                    <?php if ($row['status'] == 'aktif'): ?>
-                                        <a href="?nonaktif=<?= $row['id']; ?>" class="btn btn-warning btn-sm">Nonaktif</a>
-                                    <?php else: ?>
-                                        <a href="?aktif=<?= $row['id']; ?>" class="btn btn-success btn-sm">Aktif</a>
-                                    <?php endif; ?>
-
-                                    <a href="?hapus=<?= $row['id']; ?>" class="btn btn-danger btn-sm"
-                                        onclick="return confirm('Yakin hapus?')">
-                                        Hapus
-                                    </a>
-                                </td>
-                            </tr>
-
-                            <!-- MODAL EDIT -->
-                            <div class="modal fade" id="editModal<?= $row['id']; ?>">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form method="POST">
-                                            <div class="modal-header">
-                                                <h5>Edit Member</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <input type="hidden" name="id" value="<?= $row['id']; ?>">
-                                                <input type="text" name="name" class="form-control mb-2"
-                                                    value="<?= $row['name']; ?>" required>
-                                                <input type="text" name="division" class="form-control mb-2"
-                                                    value="<?= $row['division']; ?>" required>
-                                                <input type="text" name="angkatan" class="form-control mb-2"
-                                                    value="<?= $row['angkatan']; ?>" required>
-                                                <input type="text" name="phone" class="form-control mb-2"
-                                                    value="<?= $row['phone']; ?>" required>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="submit" name="update" class="btn btn-primary">Update</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
+                </tbody>
+            </table>
         </div>
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3>Tambah Member</h3>
+            <form method="POST">
+                <input type="text" name="name" placeholder="Nama" required>
+                <input type="text" name="division" placeholder="Divisi" required>
+                <input type="text" name="angkatan" placeholder="Angkatan" required>
+                <input type="text" name="phone" placeholder="No HP" required>
+                <button type="submit" name="tambah" class="btn btn-primary">Simpan</button>
+                <button type="button" onclick="closeModal()" class="btn btn-danger">Batal</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById("modal").style.display = "flex"
+        }
+        function closeModal() {
+            document.getElementById("modal").style.display = "none"
+        }
+    </script>
+
 </body>
 
 </html>

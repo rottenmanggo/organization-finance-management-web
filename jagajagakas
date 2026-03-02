@@ -244,7 +244,6 @@ $members = $conn->query("
             <form method="GET">
                 <select name="month">
                     <?php for ($m = 1; $m <= 12; $m++): ?>
-
                         <option value="<?= $m ?>" <?= ($selectedMonth == $m) ? 'selected' : '' ?>>
                             <?= date("F", mktime(0, 0, 0, $m, 1)) ?>
                         </option>
@@ -274,13 +273,11 @@ $members = $conn->query("
                     <?php $no = 1;
                     while ($row = $members->fetch_assoc()): ?>
                         <tr>
-
                             <td><?= $no++ ?></td>
                             <td><?= htmlspecialchars($row['name']) ?></td>
                             <td><?= htmlspecialchars($row['division']) ?></td>
 
                             <td>
-
                                 <?php if ($row['status'] == 'lunas'): ?>
                                     <span class="badge badge-success">Lunas</span>
                                 <?php else: ?>

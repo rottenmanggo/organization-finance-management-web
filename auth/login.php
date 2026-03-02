@@ -165,7 +165,7 @@ if (isset($_POST['login'])) {
             padding: 14px 50px;
             border: none;
             border-radius: 30px;
-            background: #1eb0ff;
+            background: #1d7db0;
             color: #fff;
             font-weight: 600;
             cursor: pointer;
@@ -192,7 +192,7 @@ if (isset($_POST['login'])) {
         }
 
         .overlay {
-            background: #1eb0ff;
+            background: #1d7db0;
             color: #fff;
             position: relative;
             left: -100%;
