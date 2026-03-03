@@ -179,7 +179,7 @@ $saldo = $totalIncome - $totalExpense;
         <div class="table-container">
             <table>
                 <tr>
-                    <th>Date</th>
+                    <th style="width:120px;">Date</th>
                     <th>Description</th>
                     <th>Type</th>
                     <th>Amount</th>
