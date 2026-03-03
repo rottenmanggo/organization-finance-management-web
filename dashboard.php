@@ -2,6 +2,12 @@
 session_start();
 require_once "config/database.php";
 
+$currentPage = basename($_SERVER['PHP_SELF']);
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -19,6 +25,50 @@ $saldo = $totalIncome - $totalExpense;
 
 $memberQuery = $conn->query("SELECT COUNT(*) as total_member FROM members WHERE status='aktif'");
 $totalMembers = $memberQuery->fetch_assoc()['total_member'] ?? 0;
+
+/* ================= REKAP KAS BULAN INI ================= */
+
+$currentMonth = date('n');
+$currentYear = date('Y');
+$kasPerMember = 10000;
+
+/* Total member aktif */
+$totalMemberAktif = $conn->query("
+    SELECT COUNT(*) as total 
+    FROM members 
+    WHERE status='aktif'
+")->fetch_assoc()['total'] ?? 0;
+
+/* Total kas lunas bulan ini */
+$kasMasuk = $conn->query("
+    SELECT SUM(amount) as total 
+    FROM kas 
+    WHERE month=$currentMonth 
+    AND year=$currentYear 
+    AND status='lunas'
+")->fetch_assoc()['total'] ?? 0;
+
+/* Hitung member sudah bayar */
+$memberLunas = $conn->query("
+    SELECT COUNT(*) as total 
+    FROM kas 
+    WHERE month=$currentMonth 
+    AND year=$currentYear 
+    AND status='lunas'
+")->fetch_assoc()['total'] ?? 0;
+
+$memberBelum = $totalMemberAktif - $memberLunas;
+
+$targetKas = $totalMemberAktif * $kasPerMember;
+
+$progress = $targetKas > 0 ? ($kasMasuk / $targetKas) * 100 : 0;
+
+/* Warna dinamis */
+$progressColor = "#dc3545"; // merah
+if ($progress >= 50)
+    $progressColor = "#ffc107"; // kuning
+if ($progress >= 80)
+    $progressColor = "#28a745"; // hijau
 
 /* ================= DATA GRAFIK PER BULAN ================= */
 
@@ -65,143 +115,8 @@ $recentQuery = $conn->query("
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="assets/css/style.css">
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Poppins", sans-serif
-        }
-
-        body {
-            display: flex;
-            background: #f4f6f9
-        }
-
-        /* SIDEBAR */
-        .sidebar {
-            width: 240px;
-            height: 100vh;
-            background: #1e1e2f;
-            color: #fff;
-            padding: 30px 20px;
-            position: fixed;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .sidebar h2 {
-            margin-bottom: 40px
-        }
-
-        .sidebar ul {
-            list-style: none
-        }
-
-        .sidebar ul li {
-            margin: 15px 0
-        }
-
-        .sidebar ul li a {
-            color: #ccc;
-            text-decoration: none;
-            display: block;
-            padding: 8px 10px;
-            border-radius: 6px;
-            transition: .3s;
-            font-size: 14px;
-        }
-
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background: #007bff;
-            color: #fff
-        }
-
-        .logout {
-            color: #ff4d4d
-        }
-
-        /* MAIN */
-        .main {
-            margin-left: 240px;
-            padding: 30px;
-            width: 100%
-        }
-
-        .topbar {
-            margin-bottom: 30px
-        }
-
-        .topbar h1 {
-            font-size: 22px
-        }
-
-        /* CARDS */
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-            transition: .3s;
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, .08);
-        }
-
-        .card h3 {
-            font-size: 14px;
-            color: #888
-        }
-
-        .card h2 {
-            margin-top: 10px
-        }
-
-        /* CHART */
-        .chart-container {
-            height: 300px
-        }
-
-        /* TABLE */
-        .table-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-            margin-top: 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 12px;
-            font-size: 14px
-        }
-
-        th {
-            background: #f1f1f1
-        }
-
-        tr:not(:last-child) {
-            border-bottom: 1px solid #eee
-        }
-    </style>
 </head>
 
 <body>
@@ -210,15 +125,38 @@ $recentQuery = $conn->query("
         <div>
             <h2>SIMAKAS</h2>
             <ul>
-                <li><a href="dashboard.php" class="active">Dashboard</a></li>
-                <li><a href="members.php">Members</a></li>
-                <li><a href="kas.php">Kas</a></li>
-                <li><a href="transactions.php">Transactions</a></li>
+                <li>
+                    <a href="dashboard.php" class="menu-link <?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
+                        <img src="assets/dashboard.svg" class="menu-icon">
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="members.php" class="menu-link <?= $currentPage == 'members.php' ? 'active' : '' ?>">
+                        <img src="assets/member.svg" class="menu-icon">
+                        <span>Members</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="kas.php" class="menu-link <?= $currentPage == 'kas.php' ? 'active' : '' ?>">
+                        <img src="assets/kas.svg" class="menu-icon">
+                        <span>Kas</span>
+                    </a>
+                <li>
+                    <a href="transactions.php"
+                        class="menu-link <?= $currentPage == 'transactions.php' ? 'active' : '' ?>">
+                        <img src="assets/transaction.svg" class="menu-icon">
+                        <span>Transactions</span>
+                    </a>
+                <li>
             </ul>
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
@@ -232,23 +170,54 @@ $recentQuery = $conn->query("
         <!-- SUMMARY CARDS -->
         <div class="cards">
             <div class="card">
-                <h3>Total Kas</h3>
-                <h2>Rp <?= number_format($saldo, 0, ',', '.') ?></h2>
+                <h3>Saldo</h3>
+                <h2 style="color:#007bff">Rp <?= number_format($saldo, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">
                 <h3>Total Income</h3>
-                <h2>Rp <?= number_format($totalIncome, 0, ',', '.') ?></h2>
+                <h2 style="color:#28a745">Rp <?= number_format($totalIncome, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">
                 <h3>Total Expense</h3>
-                <h2>Rp <?= number_format($totalExpense, 0, ',', '.') ?></h2>
+                <h2 style="color:#dc3545">Rp <?= number_format($totalExpense, 0, ',', '.') ?></h2>
             </div>
 
             <div class="card">
                 <h3>Total Members</h3>
                 <h2><?= $totalMembers ?></h2>
+            </div>
+        </div>
+
+        <!-- CARD KAS BULAN INI -->
+        <div class="card kas-card">
+            <div class="kas-header">
+                <h3>Kas Bulan <?= date("F Y") ?></h3>
+                <span class="kas-progress"><?= round($progress) ?>%</span>
+            </div>
+
+            <div class="kas-grid">
+                <div>
+                    <small>Target</small>
+                    <h4>Rp <?= number_format($targetKas, 0, ',', '.') ?></h4>
+                </div>
+
+                <div>
+                    <small>Realisasi</small>
+                    <h4>Rp <?= number_format($kasMasuk, 0, ',', '.') ?></h4>
+                </div>
+
+                <div>
+                    <small>Belum Bayar</small>
+                    <h4 style="color:#dc3545"><?= $memberBelum ?> Member</h4>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-fill"
+                    style="width: <?= min($progress, 100) ?>%; background: <?= $progressColor ?>;">
+                </div>
             </div>
         </div>
 
@@ -260,7 +229,7 @@ $recentQuery = $conn->query("
 
         <!-- TABLE -->
         <div class="table-container">
-            <h3>Recent Transactions</h3>
+            <h3>Laporan Transaksi</h3>
             <table>
                 <tr>
                     <th>Date</th>

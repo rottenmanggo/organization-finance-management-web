@@ -2,6 +2,14 @@
 session_start();
 require_once "config/database.php";
 
+$currentPage = basename($_SERVER['PHP_SELF']);
+
+$currentPage = basename($_SERVER['PHP_SELF']);
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -75,187 +83,8 @@ $saldo = $totalIncome - $totalExpense;
     <title>Transactions | SIMAKAS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Poppins", sans-serif
-        }
-
-        body {
-            display: flex;
-            background: #f4f6f9
-        }
-
-        /* SIDEBAR */
-        .sidebar {
-            width: 240px;
-            height: 100vh;
-            background: #1e1e2f;
-            color: #fff;
-            padding: 30px 20px;
-            position: fixed;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .sidebar h2 {
-            margin-bottom: 40px
-        }
-
-        .sidebar ul {
-            list-style: none
-        }
-
-        .sidebar ul li {
-            margin: 15px 0
-        }
-
-        .sidebar ul li a {
-            color: #ccc;
-            text-decoration: none;
-            display: block;
-            padding: 8px 10px;
-            border-radius: 8px;
-            transition: .3s;
-            font-size: 14px;
-        }
-
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background: #007bff;
-            color: #fff
-        }
-
-        .logout {
-            color: #ff4d4d
-        }
-
-        /* MAIN */
-        .main {
-            margin-left: 240px;
-            padding: 30px;
-            width: 100%
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px
-        }
-
-        /* CARDS */
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-        }
-
-        .card h3 {
-            font-size: 14px;
-            color: #888
-        }
-
-        .card h2 {
-            margin-top: 10px
-        }
-
-        /* BUTTON */
-        .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: #fff
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: #fff
-        }
-
-        /* TABLE */
-        .table-container {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 12px;
-            font-size: 14px;
-            text-align: left
-        }
-
-        th {
-            background: #f1f1f1
-        }
-
-        tr:not(:last-child) {
-            border-bottom: 1px solid #eee
-        }
-
-        /* FILTER */
-        .form-input {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-        }
-
-        /* MODAL */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, .4);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            width: 350px;
-        }
-
-        .modal input,
-        .modal select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-        }
-    </style>
 </head>
 
 <body>
@@ -264,15 +93,38 @@ $saldo = $totalIncome - $totalExpense;
         <div>
             <h2>SIMAKAS</h2>
             <ul>
-                <li><a href="dashboard.php">Dashboard</a></li>
-                <li><a href="members.php">Members</a></li>
-                <li><a href="kas.php">Kas</a></li>
-                <li><a href="transactions.php" class="active">Transactions</a></li>
+                <li>
+                    <a href="dashboard.php" class="menu-link <?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
+                        <img src="assets/dashboard.svg" class="menu-icon">
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="members.php" class="menu-link <?= $currentPage == 'members.php' ? 'active' : '' ?>">
+                        <img src="assets/member.svg" class="menu-icon">
+                        <span>Members</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="kas.php" class="menu-link <?= $currentPage == 'kas.php' ? 'active' : '' ?>">
+                        <img src="assets/kas.svg" class="menu-icon">
+                        <span>Kas</span>
+                    </a>
+                <li>
+                    <a href="transactions.php"
+                        class="menu-link <?= $currentPage == 'transactions.php' ? 'active' : '' ?>">
+                        <img src="assets/transaction.svg" class="menu-icon">
+                        <span>Transactions</span>
+                    </a>
+                <li>
             </ul>
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
@@ -305,7 +157,7 @@ $saldo = $totalIncome - $totalExpense;
             <form method="GET" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
                 <select name="month" class="form-input">
                     <option value="all" <?= ($selectedMonth == 'all') ? 'selected' : '' ?>>
-                        Semua (Total Seluruh)
+                        Semua
                     </option>
 
                     <?php for ($m = 1; $m <= 12; $m++): ?>
@@ -318,6 +170,10 @@ $saldo = $totalIncome - $totalExpense;
                 <button class="btn btn-primary">Filter</button>
             </form>
         </div>
+
+        <button class="btn btn-success export-btn" onclick="confirmExport()">
+            Export CSV
+        </button>
 
         <!-- TABLE -->
         <div class="table-container">
@@ -353,6 +209,7 @@ $saldo = $totalIncome - $totalExpense;
             </table>
         </div>
 
+
     </div>
 
     <!-- MODAL TAMBAH -->
@@ -380,6 +237,31 @@ $saldo = $totalIncome - $totalExpense;
         function openModal() { document.getElementById("modal").style.display = "flex"; }
         function closeModal() { document.getElementById("modal").style.display = "none"; }
     </script>
+
+    <script>
+        function confirmExport() {
+            document.getElementById("exportModal").style.display = "flex";
+        }
+
+        function closeExport() {
+            document.getElementById("exportModal").style.display = "none";
+        }
+
+        function doExport() {
+            window.location.href = "export_transactions.php";
+        }
+    </script>
+    <div class="modal" id="exportModal">
+        <div class="modal-content export-modal">
+            <h3>Export Laporan</h3>
+            <p>Apakah Anda yakin ingin mengunduh laporan transaksi?</p>
+
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="doExport()">Ya</button>
+                <button class="btn btn-danger" onclick="closeExport()">Batal</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 

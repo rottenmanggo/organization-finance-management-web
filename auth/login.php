@@ -2,6 +2,7 @@
 session_start();
 require_once "../config/database.php";
 
+
 if (isset($_POST['login'])) {
 
     $username = htmlspecialchars($_POST['username']);
@@ -19,10 +20,11 @@ if (isset($_POST['login'])) {
         if (password_verify($password, $user['password'])) {
 
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
+            $_SESSION['name'] = $user['name'];
 
-            header("Location: ../dashboard.php");
+            $_SESSION['show_splash'] = true;
+
+            header("Location: /organization-finance-management-web/splash.php");
             exit;
 
         } else {

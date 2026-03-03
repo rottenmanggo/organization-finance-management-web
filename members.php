@@ -2,6 +2,12 @@
 session_start();
 require_once "config/database.php";
 
+$currentPage = basename($_SERVER['PHP_SELF']);
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: auth/login.php");
     exit;
@@ -34,185 +40,8 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Poppins", sans-serif
-        }
-
-        body {
-            display: flex;
-            background: #f4f6f9
-        }
-
-        /* SIDEBAR */
-        .sidebar {
-            width: 240px;
-            height: 100vh;
-            background: #1e1e2f;
-            color: #fff;
-            padding: 30px 20px;
-            position: fixed;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .sidebar h2 {
-            margin-bottom: 40px
-        }
-
-        .sidebar ul {
-            list-style: none
-        }
-
-        .sidebar ul li {
-            margin: 15px 0
-        }
-
-        .sidebar ul li a {
-            color: #ccc;
-            text-decoration: none;
-            display: block;
-            padding: 8px 10px;
-            border-radius: 6px;
-            transition: .3s;
-            font-size: 14px;
-        }
-
-        .sidebar ul li a:hover,
-        .sidebar ul li a.active {
-            background: #007bff;
-            color: #fff
-        }
-
-        .logout {
-            color: #ff4d4d
-        }
-
-        /* MAIN */
-        .main {
-            margin-left: 240px;
-            padding: 30px;
-            width: 100%
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px
-        }
-
-        .topbar h1 {
-            font-size: 22px
-        }
-
-        /* CARD */
-        .card {
-            background: #fff;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, .05);
-        }
-
-        /* BUTTON */
-        .btn {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: #fff
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: #fff
-        }
-
-        .btn-warning {
-            background: #ffc107;
-            color: #000
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: #fff
-        }
-
-        /* TABLE */
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
-
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            font-size: 14px
-        }
-
-        th {
-            background: #f1f1f1
-        }
-
-        tr:not(:last-child) {
-            border-bottom: 1px solid #eee
-        }
-
-        .badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-        }
-
-        .badge-success {
-            background: #d4edda;
-            color: #155724
-        }
-
-        .badge-secondary {
-            background: #e2e3e5;
-            color: #383d41
-        }
-
-        /* FORM MODAL SIMPLE */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, .4);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            width: 350px;
-        }
-
-        .modal input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-    </style>
 </head>
 
 <body>
@@ -221,15 +50,38 @@ $result = $conn->query("SELECT * FROM members ORDER BY id DESC");
         <div>
             <h2>SIMAKAS</h2>
             <ul>
-                <li><a href="dashboard.php">Dashboard</a></li>
-                <li><a href="members.php" class="active">Members</a></li>
-                <li><a href="kas.php">Kas</a></li>
-                <li><a href="transactions.php">Transactions</a></li>
+                <li>
+                    <a href="dashboard.php" class="menu-link <?= $currentPage == 'dashboard.php' ? 'active' : '' ?>">
+                        <img src="assets/dashboard.svg" class="menu-icon">
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="members.php" class="menu-link <?= $currentPage == 'members.php' ? 'active' : '' ?>">
+                        <img src="assets/member.svg" class="menu-icon">
+                        <span>Members</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="kas.php" class="menu-link <?= $currentPage == 'kas.php' ? 'active' : '' ?>">
+                        <img src="assets/kas.svg" class="menu-icon">
+                        <span>Kas</span>
+                    </a>
+                <li>
+                    <a href="transactions.php"
+                        class="menu-link <?= $currentPage == 'transactions.php' ? 'active' : '' ?>">
+                        <img src="assets/transaction.svg" class="menu-icon">
+                        <span>Transactions</span>
+                    </a>
+                <li>
             </ul>
         </div>
         <div>
             <ul>
-                <li><a href="auth/logout.php" class="logout">Logout</a></li>
+                <li><a href="auth/logout.php" onclick="return confirm('Yakin ingin logout?')"
+                        class="btn btn-danger text-center d-inline-flex justify-content-center align-items-center">
+                        Logout
+                    </a></li>
             </ul>
         </div>
     </div>
