@@ -120,7 +120,6 @@ $recentQuery = $conn->query("
 </head>
 
 <body>
-
     <div class="sidebar">
         <div>
             <h2>SIMAKAS</h2>
@@ -222,9 +221,11 @@ $recentQuery = $conn->query("
         </div>
 
         <!-- CHART -->
-        <div class="card chart-container">
-            <h3>Financial Overview (<?= $year ?>)</h3>
-            <canvas id="financeChart"></canvas>
+        <div class="card">
+            <h3>Financial Overview (2026)</h3>
+            <div class="chart-container">
+                <canvas id="myChart"></canvas>
+            </div>
         </div>
 
         <!-- TABLE -->
@@ -255,36 +256,25 @@ $recentQuery = $conn->query("
     </div>
 
     <script>
-        const ctx = document.getElementById("financeChart");
+        const ctx = document.getElementById('myChart');
 
         new Chart(ctx, {
-            type: "bar",
+            type: 'bar',
             data: {
-                labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-                datasets: [
-                    {
-                        label: "Income",
-                        data: <?= json_encode($incomeData); ?>,
-                        backgroundColor: "#28a745",
-                        borderRadius: 6
-                    },
-                    {
-                        label: "Expense",
-                        data: <?= json_encode($expenseData); ?>,
-                        backgroundColor: "#dc3545",
-                        borderRadius: 6
-                    }
-                ]
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Income',
+                    data: <?= json_encode($incomeData ?? []) ?>,
+                    backgroundColor: '#28a745'
+                }, {
+                    label: 'Expense',
+                    data: <?= json_encode($expenseData ?? []) ?>,
+                    backgroundColor: '#dc3545'
+                }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: "top" }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
+                maintainAspectRatio: false
             }
         });
     </script>
